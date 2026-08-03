@@ -70,12 +70,12 @@ If both the custom domain and `pages.dev` dashboard paths are protected by separ
 In the Pages project open **Settings** > **Variables and Secrets** and add these Production variables:
 
 ```text
-ADMIN_EMAIL=admin@coleridgemeat.co.za
+ADMIN_EMAILS=admin@coleridgemeat.co.za,rautenbachmax@gmail.com
 ACCESS_TEAM_NAME=your-zero-trust-team-name
 ACCESS_AUD=the-application-audience-tag
 ```
 
-Use the exact same email in `ADMIN_EMAIL` and the Access Allow policy. Add the variables to Preview only if preview access has also been protected. Redeploy after saving them.
+List every authorized address in `ADMIN_EMAILS`, separated by commas, and use the exact same addresses in the Access Allow policy. The older single-value `ADMIN_EMAIL` variable remains supported for restored deployments. Add the variables to Preview only if preview access has also been protected. Redeploy after saving them.
 
 The API does not trust the browser or the email header alone. It verifies the Cloudflare Access JWT signature, issuer, audience, expiry and exact email before any product can be changed. If any security variable is missing, production owner requests are denied.
 

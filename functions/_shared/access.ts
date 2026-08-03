@@ -50,16 +50,27 @@ export const authenticateAccess = async (
   request: Request,
   env: Env,
 ): Promise<AuthenticationResult> => {
-  const configuredEmail = env.ADMIN_EMAIL?.trim().toLowerCase();
+  const configuredEmails = Array.from(
+    new Set(
+      [env.ADMIN_EMAILS, env.ADMIN_EMAIL]
+        .filter((value): value is string => Boolean(value))
+        .flatMap((value) => value.split(","))
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  );
   const teamName = env.ACCESS_TEAM_NAME?.trim();
   const expectedAudiences =
     env.ACCESS_AUD?.split(",").map((value) => value.trim()).filter(Boolean) ?? [];
 
   if (isLocalRequest(request) && (!teamName || expectedAudiences.length === 0)) {
-    return { ok: true, identity: { email: configuredEmail || "local-admin@coleridgemeat.test" } };
+    return {
+      ok: true,
+      identity: { email: configuredEmails[0] || "local-admin@coleridgemeat.test" },
+    };
   }
 
-  if (!configuredEmail || !teamName || expectedAudiences.length === 0) {
+  if (configuredEmails.length === 0 || !teamName || expectedAudiences.length === 0) {
     return { ok: false, message: "The owner dashboard security settings are incomplete." };
   }
 
@@ -113,7 +124,7 @@ export const authenticateAccess = async (
       typeof payload.exp === "number" &&
       payload.exp > now &&
       (payload.nbf == null || payload.nbf <= now) &&
-      email === configuredEmail;
+      Boolean(email && configuredEmails.includes(email));
 
     if (!validClaims || !email) {
       return { ok: false, message: "This account is not authorised for the owner dashboard." };
