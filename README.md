@@ -2,6 +2,8 @@
 
 Vite/React website with a single public product catalogue and a Cloudflare-protected owner dashboard.
 
+Live website: [https://coleridge.pages.dev](https://coleridge.pages.dev)
+
 ## Local development
 
 ```powershell
