@@ -27,6 +27,6 @@ npm run build
 
 ## Deployment
 
-Follow `CLOUDFLARE_SETUP.md`. Production owner access will remain locked until the D1 binding, Cloudflare Access application, and three security variables are configured.
+Follow `CLOUDFLARE_SETUP.md` when recreating or transferring the project. The live deployment uses a D1 catalogue database and Cloudflare Access email authentication for the owner dashboard.
 
 The previous retail/wholesale store and its restoration instructions are under `legacy/retail-wholesale-store`.
