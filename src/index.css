@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  
+  --color-stone-950: #0c0a09;
+  --color-stone-900: #1c1917;
+  --color-stone-800: #292524;
+  --color-stone-200: #e7e5e4;
+  --color-stone-100: #f5f5f4;
+  
+  --color-burgundy-900: #08111f;
+  --color-burgundy-800: #10233f;
+  --color-burgundy-700: #17365f;
+  --color-burgundy-600: #245388;
+  --color-burgundy-500: #3c74b1;
+  --color-burgundy-400: #6997c9;
+  --color-burgundy-300: #9ebade;
+  --color-burgundy-200: #d0def0;
+}
+
+body {
+  @apply bg-stone-950 text-stone-200 font-sans antialiased selection:bg-burgundy-700 selection:text-stone-100;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-serif;
+}
+
+/* Keep section offsets consistent without forcing long mobile scroll animations */
+html {
+  scroll-behavior: auto;
+  scroll-padding-top: 6rem;
+}
+
+@media (min-width: 1024px) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Hide scrollbar for clean look but keep functionality */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-stone-950;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-stone-800 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-stone-700;
+}

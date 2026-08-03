@@ -1,0 +1,12 @@
+node_modules/
+build/
+dist/
+coverage/
+.wrangler/
+coleridgepictures/
+.DS_Store
+*.log
+*check*.png
+shop-grid-*.png
+.env*
+!.env.example

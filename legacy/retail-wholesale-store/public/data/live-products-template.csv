@@ -1,0 +1,241 @@
+productName,orderType,productId,category,unit,price,priceLabel,stockStatus,enabled,note
+Chicken Fillet,retail,r-chk-fillet,Chicken,kg,74.99,,in_stock,TRUE,Fresh 5kg bag; in stock; lean fillet for whatever you need
+Chicken Wings,retail,r-chk-wings,Chicken,kg,79.99,,in_stock,TRUE,"Individually frozen in 5kg bags, not injected; in stock; great for platters or parties"
+Chicken Thighs,retail,r-chk-thighs,Chicken,kg,59.99,,in_stock,TRUE,"Individually frozen in 5kg bags, not injected; in stock; great for roasting chicken"
+Chicken Drumsticks,retail,r-chk-drums,Chicken,kg,74.99,,in_stock,TRUE,"Individually frozen in 5kg bags, not injected; in stock; great for roasting chicken"
+Chicken Whole (Grilliers),retail,r-chk-whole,Chicken,kg,54.99,,in_stock,TRUE,"Fresh, 10 units in a box; specific size can be requested; on order"
+Chicken Stew,retail,r-chk-stew,Chicken,kg,59.99,,in_stock,TRUE,Chicken fillet and thighs; made on order; great for stew
+Chicken Fillet Pizza Pieces,retail,r-chk-fillet-pc,Chicken,kg,84.99,,in_stock,TRUE,"1kg bags, cut smaller than 1cm; made on order; perfect topping for pizzas"
+Chicken Buffalo Wings,retail,r-chk-buff,Chicken,kg,74.99,,in_stock,TRUE,Any quantity; made on order; great for platters or parties
+Chicken Buffalo Wings L&H,retail,r-chk-buff-lh,Chicken,kg,74.99,,in_stock,TRUE,Marinated lemon and herb buffalo wings; in stock
+Chicken Buffalo Wings BBQ,retail,r-chk-buff-bbq,Chicken,kg,74.99,,in_stock,TRUE,Marinated tangy BBQ buffalo wings; in stock
+Chicken Buffalo Wings Peri,retail,r-chk-buff-peri,Chicken,kg,74.99,,in_stock,TRUE,Marinated peri peri buffalo wings; in stock
+Chicken Buffalo Wings S/C,retail,r-chk-buff-sc,Chicken,kg,74.99,,in_stock,TRUE,Marinated sweet chilli buffalo wings; in stock
+Striploin (Karan),retail,r-beef-striploin,Beef,kg,179.99,,in_stock,TRUE,Fresh box; in stock; cut your own steaks
+Topside A,retail,r-beef-topside,Beef,kg,159.99,,in_stock,TRUE,Fresh box; in stock; biltong or tenderize steak
+Knuckle A,retail,r-beef-knuckle,Beef,kg,139.99,,in_stock,TRUE,"Fresh box; in stock; goulash, strips, mince or wors"
+Crops (Karan),retail,r-beef-crops,Beef,kg,105.99,,in_stock,TRUE,Fresh box; made on order; cooked as a steak or great for kebabs
+Rump A (Karan),retail,r-beef-rump-a,Beef,kg,105.99,,in_stock,TRUE,Fresh box; on order; cut your own steaks
+Rump Tail,retail,r-beef-rump-tail,Beef,kg,105.99,,in_stock,TRUE,Fresh box; in stock; cut your own steaks or use for kebabs
+Silverside A,retail,r-beef-silverside,Beef,kg,105.99,,in_stock,TRUE,Fresh box; in stock; biltong or tenderize steak
+Rump C0/1,retail,r-beef-rump-c,Beef,kg,109.99,,in_stock,TRUE,Fresh box; in stock; all rounder
+Fillet,retail,r-beef-fillet,Beef,kg,289.99,,in_stock,TRUE,Fresh box; on order; lean steak
+Soft Shin,retail,r-beef-soft-shin,Beef,kg,104.99,,in_stock,TRUE,Fresh box; in stock; best for stew mixed with more boney meat
+Bolo 0/1,retail,r-beef-bolo,Beef,kg,104.99,,in_stock,TRUE,Fresh box; in stock; all rounder
+Body Fat,retail,r-beef-body-fat,Beef,kg,39.99,,in_stock,TRUE,Frozen box; in stock; high quality fat
+Marrow Bones,retail,r-beef-marrow,Beef,kg,29.99,,in_stock,TRUE,Frozen box; on order; soup or toast
+Beef Tenderize Steak,retail,r-beef-tender,Beef,kg,139.99,,in_stock,TRUE,"Any quantity; made on order; nice and lean, good for a lot"
+(Karan) Beef Sirloin Portioned,retail,r-beef-sir-port,Beef,kg,0.00,N/S,in_stock,TRUE,Size requested; made on order; cut and vacuum packed individually
+Beef Goulash / Strips,retail,r-beef-goulash,Beef,kg,129.99,,in_stock,TRUE,"Any quantity; made on order; stews, pies and stroganoff"
+Beef Boneless Stew,retail,r-beef-boneless-stew,Beef,kg,99.99,,in_stock,TRUE,Any quantity; in stock; nice stew and budget friendly
+Beef Stew (With Bone),retail,r-beef-stew-bone,Beef,kg,74.90,,in_stock,TRUE,Any quantity; in stock; meaty stew with great beef flavour
+Boerewors,retail,r-beef-wors,Beef,kg,94.99,,in_stock,TRUE,"Fresh or frozen, packed in trays 400g-1kg; in stock; burgers, sausage, meatballs or kebabs"
+Beef Steak Mince 80/20,retail,r-beef-mince-80,Minces,kg,94.99,,in_stock,TRUE,Fresh vacuumed 5kg bags; made on order; great for smash burgers or lasagne
+Beef Lean Steak Mince 90/10,retail,r-beef-mince-90,Minces,kg,105.99,,in_stock,TRUE,Fresh vacuumed 5kg bags; made on order; great for a filling or lasagne
+Beef Ultra Lean Steak Mince 95/5,retail,r-beef-mince-95,Minces,kg,129.99,,in_stock,TRUE,Any quantity; made on order; when you need that extra lean mince
+Ostrich Trim,retail,r-ost-trim,Ostrich,kg,99.99,,in_stock,TRUE,Frozen box; ask for availability; lean trim for goulash or strips
+Ostrich Steak,retail,r-ost-steaks,Ostrich,kg,109.99,,in_stock,TRUE,Fresh or frozen 2.5kg bags; ask for availability; nice lean no-fat steaks
+Ostrich Hearts,retail,r-ost-hearts,Ostrich,kg,39.99,,in_stock,TRUE,Frozen 10kg average bags; ask for availability; good substitute for beef hearts
+Lamb Stew,retail,r-lamb-stew,Lamb,kg,144.99,,in_stock,TRUE,Fresh or frozen; please arrange for best shelf life; on order; lean lamb stew
+Lamb A1/2 Riblets,retail,r-lamb-riblets,Lamb,kg,159.99,,in_stock,TRUE,Fresh or frozen; please arrange for best shelf life; on order; best riblets to braai and baste
+Lamb A1/2 Ribs,retail,r-lamb-ribs,Lamb,kg,139.99,,in_stock,TRUE,Fresh or frozen; please arrange for best shelf life; on order; best ribs to braai and baste
+Lamb A0 Braaichops,retail,r-lamb-a0-braai,Lamb,kg,129.99,,in_stock,TRUE,Fresh or frozen; please arrange for best shelf life; on order; lean braai chops
+Lamb A0 Loin Chops,retail,r-lamb-a0-loin,Lamb,kg,129.99,,in_stock,TRUE,Fresh or frozen; please arrange for best shelf life; on order; lean loin chops
+Lamb Kidneys,retail,r-lamb-kidneys,Lamb,kg,34.99,,in_stock,TRUE,Frozen; can be packed in trays or bags; on order
+Lamb Kidneys Cut,retail,r-lamb-kidneys-cut,Lamb,kg,49.99,,in_stock,TRUE,Frozen 5kg bag; in stock; cut for pie production
+Hake Steaks,retail,r-fish-hake,Fish,kg,154.99,,in_stock,TRUE,100g-330g individually wrapped; made on order; great for battered fish or nice size pieces to cook
+Fish Finger Tray,retail,r-fish-finger-tray,Fish,each,23.00,,in_stock,TRUE,10 fish fingers per tray; made on order; for the kids
+Fish Cakes Tray,retail,r-fish-cakes-tray,Fish,each,19.99,,in_stock,TRUE,5 fish cakes per tray; made on order; for the kids
+Ostrich Steak Portioned,retail,r-prep-ost-port,Ready to Cook,each,39.99,,in_stock,TRUE,"Fresh vacuumed, 270g-300g; on order; lean steak"
+Beef Wagyu Burgers,retail,r-prep-wagyu,Ready to Cook,each,30.00,,in_stock,TRUE,"Fresh or frozen 150g, 130mm; in stock"
+Boerewors Breakfast,retail,r-prep-wors-bf,Ready to Cook,each,10.99,,in_stock,TRUE,Fresh or frozen 80g-100g / 15cm; in stock
+Boerewors Hotdog,retail,r-prep-wors-hd,Ready to Cook,each,11.99,,in_stock,TRUE,Fresh or frozen 100g-120g / 15cm; in stock
+Boerewors Footlong,retail,r-prep-wors-ft,Ready to Cook,each,13.99,,in_stock,TRUE,Fresh or frozen 130g-150g / 22cm; in stock
+Beef Meatballs 40G,retail,r-prep-beef-mball,Ready to Cook,each,3.99,,in_stock,TRUE,Fresh or frozen 40g; in stock
+Beef Patties 100G,retail,r-prep-beef-patty-s,Ready to Cook,each,11.99,,in_stock,TRUE,"Fresh or frozen 100g, 100mm; in stock"
+Beef Patties 150G,retail,r-prep-beef-patty-l,Ready to Cook,each,13.99,,in_stock,TRUE,"Fresh or frozen 150g, 130mm; in stock"
+Beef BBQ Cheese Patties,retail,r-prep-bbq-patty,Ready to Cook,each,11.99,,in_stock,TRUE,"Fresh or frozen 100g, 100mm; in stock"
+Beef Jalapeno Patties,retail,r-prep-jalapeno,Ready to Cook,each,11.99,,in_stock,TRUE,"Fresh or frozen 100g, 100mm; in stock"
+Chicken Patties,retail,r-prep-chk-patty,Ready to Cook,each,7.99,,in_stock,TRUE,"Frozen 120g, 100mm; in stock"
+Chicken Meatballs 40G,retail,r-prep-chk-mball,Ready to Cook,each,3.99,,in_stock,TRUE,Frozen 40g; made on order
+Rump Steak Kebab 60G,retail,r-prep-beef-kb60,Ready to Cook,each,13.99,,in_stock,TRUE,Rump steak with green pepper and onions; made on order
+Rump Steak Kebab 100G,retail,r-prep-beef-kb100,Ready to Cook,each,18.99,,in_stock,TRUE,Rump steak with green pepper and onions; made on order
+Rump Steak Kebab 150G,retail,r-prep-beef-kb150,Ready to Cook,each,27.99,,in_stock,TRUE,Rump steak with green pepper and onions; made on order
+Rump Steak Kebab 200G,retail,r-prep-beef-kb200,Ready to Cook,each,39.99,,in_stock,TRUE,Rump steak with green pepper and onions; made on order
+Chicken Fillet Kebab 60G,retail,r-prep-chk-kb60,Ready to Cook,each,9.99,,in_stock,TRUE,Chicken fillet with green pepper and onions; made on order
+Chicken Fillet Kebab 100G,retail,r-prep-chk-kb100,Ready to Cook,each,13.90,,in_stock,TRUE,Chicken fillet with green pepper and onions; made on order
+Chicken Fillet Kebab 150G,retail,r-prep-chk-kb150,Ready to Cook,each,21.99,,in_stock,TRUE,Chicken fillet with green pepper and onions; made on order
+Chicken Fillet Kebab 200G,retail,r-prep-chk-kb200,Ready to Cook,each,29.99,,in_stock,TRUE,Chicken fillet with green pepper and onions; made on order
+Chicken Fillet P/Medium,retail,r-prep-chk-med,Ready to Cook,each,11.99,,in_stock,TRUE,Fresh or frozen 140g-160g; in stock
+Chicken Fillet P/Large,retail,r-prep-chk-lrg,Ready to Cook,each,14.99,,in_stock,TRUE,Fresh or frozen 165g-205g; in stock
+Chicken Leg Q P/Medium,retail,r-prep-leg-med,Ready to Cook,each,16.99,,in_stock,TRUE,Fresh or frozen 240g-275g; in stock
+Chicken Leg Q P/Large,retail,r-prep-leg-lrg,Ready to Cook,each,18.99,,in_stock,TRUE,Fresh or frozen 280g-305g; in stock
+Chicken Leg Q P/X Large,retail,r-prep-leg-xl,Ready to Cook,each,19.99,,in_stock,TRUE,Fresh or frozen 310g-340g; in stock
+Mozzarella Loaf Mini,retail,r-ch-mozloaf-mini,Cheese,kg,134.99,,in_stock,TRUE,Fresh 200g +/- vacuumed; in stock; for retail purposes
+Mozzarella Grated,retail,r-ch-mozgr,Cheese,kg,110.00,,in_stock,TRUE,Frozen 2kg bags; in stock; for production purposes
+Cheddar Loaf Mini,retail,r-ch-chedloaf-mini,Cheese,kg,134.99,,in_stock,TRUE,Fresh 200g +/- vacuumed; in stock; for retail purposes
+Cheddar Grated,retail,r-ch-chedgr,Cheese,kg,110.00,,in_stock,TRUE,Frozen 2kg bags; in stock; for production purposes
+Gouda Loaf Mini,retail,r-ch-gouda-mini,Cheese,kg,134.99,,in_stock,TRUE,Fresh 200g +/- vacuumed; in stock; for retail purposes
+Pizza Mix Grated,retail,r-ch-pizza,Cheese,kg,110.00,,in_stock,TRUE,Frozen 2kg bags; in stock; for production purposes
+Chips Fresh 7mm/10mm/12mm,retail,r-bulk-chips-fresh,Bulk & Pantry,kg,0.00,N/S,in_stock,TRUE,Made fresh on order; lasts 5 days in the fridge; on order; oil fry
+Chips 7mm,retail,r-bulk-chips-7,Bulk & Pantry,each,37.99,,in_stock,TRUE,"Frozen 2.5kg bags x 4 in a box; in stock; oil frying, air frying or oven bake"
+Chips 10mm,retail,r-bulk-chips-10,Bulk & Pantry,each,29.99,,in_stock,TRUE,"Frozen 2.5kg bags x 6 in a box; on order; oil frying, air frying or oven bake"
+Chips 12mm,retail,r-bulk-chips-12,Bulk & Pantry,each,29.99,,in_stock,TRUE,"Frozen 2.5kg bags x 6 in a box; on order; oil frying, air frying or oven bake"
+Eggs Large 30 x 12,retail,r-bulk-eggs,Bulk & Pantry,each,799.99,,in_stock,TRUE,R66.58 per tray; R2.21 per egg; in stock; baking or breakfast needs
+Mix Veg (10 x 1kg),retail,r-bulk-veg-mix,Bulk & Pantry,each,29.99,,in_stock,TRUE,Frozen 1kg x 10 bags; in stock
+Corn (10 x 1kg),retail,r-bulk-veg-corn,Bulk & Pantry,each,35.99,,in_stock,TRUE,Frozen 1kg x 10 bags; on order
+Green Beans (10 x 1kg),retail,r-bulk-veg-green-beans,Bulk & Pantry,each,35.99,,in_stock,TRUE,Frozen 1kg x 10 bags; on order
+Broccoli (10 x 1kg),retail,r-bulk-veg-broccoli,Bulk & Pantry,each,34.99,,in_stock,TRUE,Frozen 1kg x 10 bags; on order
+Diced Carrot (10 x 1kg),retail,r-bulk-veg-diced-carrot,Bulk & Pantry,each,34.99,,in_stock,TRUE,Frozen 1kg x 10 bags; on order
+Butternut (10 x 1kg),retail,r-bulk-veg-butternut,Bulk & Pantry,each,35.99,,in_stock,TRUE,Frozen 1kg x 10 bags; on order
+Cauliflower (10 x 1kg),retail,r-bulk-veg-cauliflower,Bulk & Pantry,each,35.99,,in_stock,TRUE,Frozen 1kg x 10 bags; on order
+Hawai Mix (10 x 1kg),retail,r-bulk-veg-hawai,Bulk & Pantry,each,35.99,,in_stock,TRUE,Frozen 1kg x 10 bags; on order
+Carrot Round (10 x 1kg),retail,r-bulk-veg-carrot-round,Bulk & Pantry,each,30.99,,in_stock,TRUE,Frozen 1kg x 10 bags; on order
+Country Crop (10 x 1kg),retail,r-bulk-veg-country,Bulk & Pantry,each,35.99,,in_stock,TRUE,Frozen 1kg x 10 bags; on order
+Peas (10 x 1kg),retail,r-bulk-veg-peas,Bulk & Pantry,each,35.99,,in_stock,TRUE,Frozen 1kg x 10 bags; on order
+Country Mix (10 x 1kg),retail,r-bulk-veg-country-mix,Bulk & Pantry,each,39.99,,in_stock,TRUE,Frozen 1kg x 10 bags; in stock
+Broccoli Florets (6 x 1kg),retail,r-bulk-veg-broccoli-florets,Bulk & Pantry,each,42.99,,in_stock,TRUE,Frozen 1kg x 6 bags; on order
+Mix Veg (10 x 900g),retail,r-bulk-veg-mix-900,Bulk & Pantry,each,34.99,,in_stock,TRUE,Frozen 900g x 10 bags; on order
+Mushroom Pieces & Stems (10 x 1kg),retail,r-bulk-veg-mushroom,Bulk & Pantry,each,37.99,,in_stock,TRUE,Frozen 1kg x 10 bags
+Chicken Necks,retail,r-bdg-chk-necks-1,Budget Items,each,29.99,,in_stock,TRUE,Frozen 1kg bags; in stock
+Chicken Necks Tray,retail,r-bdg-chk-necks-s,Budget Items,each,10.00,,in_stock,TRUE,Frozen 280g tray; in stock; for smaller portions or resale
+Chicken Liver 1kg,retail,r-bdg-chk-liver-1,Budget Items,each,27.99,,in_stock,TRUE,1kg bags; in stock
+Chicken Liver 270G,retail,r-bdg-chk-liver-270,Budget Items,each,10.00,,in_stock,TRUE,Packed in 270g trays; in stock; for smaller portions or resale
+Chicken Liver Frozen 1kg,retail,r-bdg-chk-liver-frozen,Budget Items,each,29.99,,in_stock,TRUE,Frozen 1kg bags; in stock
+Chicken Liver Tray,retail,r-bdg-chk-liver-tray,Budget Items,each,10.00,,in_stock,TRUE,Frozen 270g tray; in stock; for smaller portions or resale
+Chicken Gizzards,retail,r-bdg-giz-1,Budget Items,each,42.99,,in_stock,TRUE,Frozen 1kg bags; in stock
+Chicken Gizzards Tray,retail,r-bdg-giz-s,Budget Items,each,13.99,,in_stock,TRUE,Frozen 250g tray; in stock; for smaller portions or resale
+Chicken Skins Tray,retail,r-bdg-skins-s,Budget Items,each,10.00,,in_stock,TRUE,Frozen 300g tray; in stock
+Chicken Chunks,retail,r-bdg-chunks-1,Budget Items,each,25.00,,in_stock,TRUE,Frozen 1kg bags; in stock
+Chicken Chunks Tray,retail,r-bdg-chunks-s,Budget Items,each,10.00,,in_stock,TRUE,Frozen 300g tray; in stock; for smaller portions or resale
+Meaty Bones Wild,retail,r-bdg-bones,Budget Items,kg,0.00,N/S,in_stock,TRUE,"Frozen box, 20kg; in stock"
+Meaty Bones Wild Trays,retail,r-bdg-bones-s,Budget Items,each,0.00,N/S,in_stock,TRUE,Frozen 700g tray; in stock; for smaller portions or resale
+Ground Beef Style Patties,retail,r-bdg-gbf-patty,Budget Items,each,4.00,,in_stock,TRUE,"Frozen 80g patty, 100mm; in stock"
+Ground Beef Style Patties Tray,retail,r-bdg-gbf-patty-tray,Budget Items,each,0.00,N/S,in_stock,TRUE,80g patties x 4 per tray; in stock; for resale
+Ground Beef Style Meatballs,retail,r-bdg-gbf-mball,Budget Items,each,0.00,N/S,in_stock,TRUE,40g meatballs; in stock
+Ground Beef Style Meatballs Tray,retail,r-bdg-gbf-mball-tray,Budget Items,each,0.00,N/S,in_stock,TRUE,40g meatballs x 10 per tray; in stock
+Ground Beef Style Mince,retail,r-bdg-gbf-mince,Budget Items,each,30.00,,in_stock,TRUE,Frozen 1kg bags; made on order; made with your budget in mind
+Ground Beef Style Mince Tray,retail,r-bdg-gbf-mince-tray,Budget Items,each,10.00,,in_stock,TRUE,Frozen 300g tray; made on order; for smaller portions or resale
+French Polony 250G,retail,r-bdg-pol-250,Budget Items,each,10.00,,in_stock,TRUE,Fresh 250g roll; made on order; ready to eat
+Garlic French Polony 250G,retail,r-bdg-pol-garl,Budget Items,each,10.00,,in_stock,TRUE,Fresh 250g roll; made on order; ready to eat
+Chicken Polony 250G,retail,r-bdg-pol-chk,Budget Items,each,10.00,,in_stock,TRUE,Fresh 250g roll; made on order; ready to eat
+French Polony 1.8kg,retail,r-bdg-pol-1.8,Budget Items,each,59.99,,in_stock,TRUE,Fresh 1.8kg roll; made on order; ready to eat / great for sandwiches
+Chicken Fillet,wholesale,w-chk-fillet,Chicken,kg,68.99,,in_stock,TRUE,Fresh 5kg bag; in stock; lean fillet for whatever you need
+Chicken Wings,wholesale,w-chk-wings,Chicken,kg,73.59,,in_stock,TRUE,Individually frozen in 5kg bags; not injected; in stock
+Chicken Thighs,wholesale,w-chk-thighs,Chicken,kg,59.79,,in_stock,TRUE,Individually frozen in 5kg bags; not injected; in stock
+Chicken Drumsticks,wholesale,w-chk-drums,Chicken,kg,74.74,,in_stock,TRUE,Individually frozen in 5kg bags; not injected; in stock
+Chicken Whole (Grilliers),wholesale,w-chk-whole,Chicken,kg,55.19,,in_stock,TRUE,Fresh 10 units in a box; specific size can be requested; on order
+Chicken Fillet Pizza Pieces,wholesale,w-chk-fillet-pizza,Chicken,kg,74.74,,in_stock,TRUE,1kg bags; cut smaller than 1cm; made on order
+Chicken Stew,wholesale,w-chk-stew,Chicken,kg,59.79,,in_stock,TRUE,Chicken fillet and thighs; made on order
+Chicken Buffalo Wings,wholesale,w-chk-buff,Chicken,kg,80.49,,in_stock,TRUE,"Any quantity; made on order; great for platters, parties and braais"
+Chicken Buffalo Wings Marinated L&H,wholesale,w-chk-buff-lh,Chicken,kg,71.29,,in_stock,TRUE,Marinated Lemon & Herb buffalo wings; in stock
+Chicken Buffalo Wings Marinated BBQ,wholesale,w-chk-buff-bbq,Chicken,kg,71.29,,in_stock,TRUE,Marinated Tangy BBQ buffalo wings; in stock
+Chicken Buffalo Wings Marinated Peri,wholesale,w-chk-buff-peri,Chicken,kg,71.29,,in_stock,TRUE,Marinated Peri Peri buffalo wings; in stock
+Chicken Buffalo Wings Marinated S/C,wholesale,w-chk-buff-sc,Chicken,kg,71.29,,in_stock,TRUE,Marinated Sweet Chilli buffalo wings; in stock
+Striploin (Karan),wholesale,w-beef-striploin-karan,Beef,kg,166.74,,in_stock,TRUE,Fresh box; in stock; cut your own steaks
+Rump A (Karan),wholesale,w-beef-rump-a-karan,Beef,kg,149.49,,in_stock,TRUE,Fresh box; on order; cut your own steaks
+Rump Tail,wholesale,w-beef-rump-tail,Beef,kg,137.99,,in_stock,TRUE,Fresh box; in stock; cut your own steaks or kebabs
+Silverside A,wholesale,w-beef-silverside-a,Beef,kg,103.49,,in_stock,TRUE,Fresh box; in stock; biltong or tenderized steak
+Topside A,wholesale,w-beef-topside-a,Beef,kg,103.49,,in_stock,TRUE,Fresh box; in stock; biltong or tenderized steak
+Knuckle A,wholesale,w-beef-knuckle-a,Beef,kg,109.24,,in_stock,TRUE,"Fresh box; in stock; goulash, strips, mince or wors"
+Crops (Karan),wholesale,w-beef-crops-karan,Beef,kg,103.49,,in_stock,TRUE,Fresh box; made on order; steaks or kebabs
+Soft Shin,wholesale,w-beef-shin,Beef,kg,109.24,,in_stock,TRUE,Fresh box; in stock; best mixed with more boney meat for stew
+Fillet,wholesale,w-beef-fillet,Beef,kg,275.99,,in_stock,TRUE,Fresh box; on order; steak
+Bolo 0/1,wholesale,w-beef-bolo,Beef,kg,103.49,,in_stock,TRUE,Fresh box; in stock; all rounder
+Rump C0/1,wholesale,w-beef-rump-c,Beef,kg,103.49,,in_stock,TRUE,Fresh box; in stock; all rounder
+Body Fat,wholesale,w-beef-body-fat,Beef,kg,32.19,,in_stock,TRUE,Frozen box; in stock; high quality fat
+Marrow Bones,wholesale,w-beef-marrow,Beef,kg,27.59,,in_stock,TRUE,Frozen box; on order; soup or toast
+Beef Tenderize Steak,wholesale,w-beef-tender,Beef,kg,137.99,,in_stock,TRUE,Any quantity; made on order
+(Karan) Beef Sirloin Portioned,wholesale,w-beef-karan-cut,Beef,kg,229.99,,in_stock,TRUE,Size requested; made on order
+Beef Goulash or Strips,wholesale,w-beef-goulash,Beef,kg,120.74,,in_stock,TRUE,"Any quantity; made on order; stews, pies and stroganoff"
+Beef Boneless Stew,wholesale,w-beef-boneless-stew,Beef,kg,114.99,,in_stock,TRUE,Any quantity; in stock; great boneless stew
+Beef Stew (With Bone),wholesale,w-beef-stew-bone,Beef,kg,97.74,,in_stock,TRUE,Any quantity; in stock; great bone-in stew
+Boerewors,wholesale,w-beef-boerewors,Beef,kg,86.24,,in_stock,TRUE,"Fresh or frozen packed in trays, 400g-1kg; in stock"
+Beef Steak Mince 80/20,wholesale,w-mince-80,Minces,kg,91.99,,in_stock,TRUE,Fresh vacuumed 5kg bags; made on order
+Beef Lean Steak Mince 90/10,wholesale,w-mince-90,Minces,kg,103.49,,in_stock,TRUE,Fresh vacuumed 5kg bags; made on order
+Beef Ultra Lean Steak Mince 95/5,wholesale,w-mince-95,Minces,kg,120.74,,in_stock,TRUE,Any quantity; made on order
+Ostrich Trim,wholesale,w-ost-trim,Ostrich,kg,97.74,,in_stock,TRUE,Frozen box; ask for availability; lean trim for goulash or strips
+Ostrich Steak,wholesale,w-ost-steaks,Ostrich,kg,103.49,,in_stock,TRUE,Fresh or frozen 2.5kg bags; ask for availability; lean steaks
+Ostrich Hearts,wholesale,w-ost-hearts,Ostrich,kg,39.09,,in_stock,TRUE,Frozen 10kg average bags; ask for availability
+Lamb A0 Braaichops,wholesale,w-lamb-a0-braai,Lamb,kg,137.99,,in_stock,TRUE,Fresh or frozen; on order; lean braai chops
+Lamb A0 Loin Chops,wholesale,w-lamb-a0-loin,Lamb,kg,149.49,,in_stock,TRUE,Fresh or frozen; on order; lean loin chops
+Lamb Stew,wholesale,w-lamb-stew,Lamb,kg,149.49,,in_stock,TRUE,Fresh or frozen; on order
+Lamb A1/2 Ribs,wholesale,w-lamb-ribs,Lamb,kg,149.49,,in_stock,TRUE,Fresh or frozen; on order; best ribs to braai and baste
+Lamb A1/2 Riblets,wholesale,w-lamb-riblets,Lamb,kg,149.49,,in_stock,TRUE,Fresh or frozen; on order; best riblets to braai and baste
+Lamb Kidneys,wholesale,w-lamb-kidneys,Lamb,kg,114.99,,in_stock,TRUE,Frozen; can be packed in trays or bags; on order
+Lamb Kidneys Cut,wholesale,w-lamb-kidneys-cut,Lamb,kg,45.99,,in_stock,TRUE,Frozen 5kg bag; in stock; cut for pie production
+Mozzarella Loaf Mini,wholesale,w-ch-mozloaf-mini,Cheese,kg,126.49,,in_stock,TRUE,Fresh 200g +/- vacuumed; in stock; retail purposes
+Mozzarella Grated,wholesale,w-ch-mozgr,Cheese,kg,110.39,,in_stock,TRUE,Frozen 2kg bags; in stock; production purposes
+Cheddar Loaf Mini,wholesale,w-ch-chedloaf-mini,Cheese,kg,126.49,,in_stock,TRUE,Fresh 200g +/- vacuumed; in stock; retail purposes
+Cheddar Grated,wholesale,w-ch-chedgr,Cheese,kg,110.39,,in_stock,TRUE,Frozen 2kg bags; in stock; production purposes
+Gouda Loaf Mini,wholesale,w-ch-gouda-mini,Cheese,kg,126.49,,in_stock,TRUE,Fresh 200g +/- vacuumed; in stock; retail purposes
+Pizza Mix Grated,wholesale,w-ch-pizza,Cheese,kg,110.39,,in_stock,TRUE,Frozen 2kg bags; in stock; production purposes
+Hake Steaks,wholesale,w-fish-hake,Fish,kg,143.74,,in_stock,TRUE,100g-330g individually wrapped; made on order
+Fish Finger Tray,wholesale,w-fish-finger-tray,Fish,each,20.70,,in_stock,TRUE,10 fish fingers per tray; made on order
+Fish Cakes Tray,wholesale,w-fish-cakes-tray,Fish,each,18.40,,in_stock,TRUE,5 fish cakes per tray; made on order
+Ostrich Steaks Portioned,wholesale,w-prep-ost-port,Ready to Cook,each,34.49,,in_stock,TRUE,"Fresh vacuumed, 270g-300g; on order"
+Beef Wagyu Burgers,wholesale,w-prep-wagyu,Ready to Cook,each,30.00,,in_stock,TRUE,"Fresh or frozen 150g, 130mm; in stock"
+Boerewors Breakfast,wholesale,w-prep-wors-bf,Ready to Cook,each,10.34,,in_stock,TRUE,Fresh or frozen 80g-100g / 15cm; in stock
+Boerewors Hotdog,wholesale,w-prep-wors-hd,Ready to Cook,each,11.49,,in_stock,TRUE,Fresh or frozen 100g-120g / 15cm; in stock
+Boerewors Footlong,wholesale,w-prep-wors-ft,Ready to Cook,each,13.79,,in_stock,TRUE,Fresh or frozen 130g-150g / 22cm; in stock
+Beef Meatballs 40G,wholesale,w-prep-beef-mball,Ready to Cook,each,3.78,,in_stock,TRUE,Fresh or frozen 40g; in stock
+Beef Patties (100g),wholesale,w-prep-beef-patty-s,Ready to Cook,each,11.49,,in_stock,TRUE,"Fresh or frozen 100g, 100mm; in stock"
+Beef Patties (150g),wholesale,w-prep-beef-patty-l,Ready to Cook,each,13.79,,in_stock,TRUE,"Fresh or frozen 150g, 130mm; in stock"
+Beef Jalapeno Patties,wholesale,w-prep-jalapeno,Ready to Cook,each,11.49,,in_stock,TRUE,"Fresh or frozen 100g, 100mm; in stock"
+Chicken Patties,wholesale,w-prep-chk-patty,Ready to Cook,each,8.04,,in_stock,TRUE,"Frozen 120g, 100mm; in stock"
+Chicken Meatballs 40G,wholesale,w-prep-chk-mball,Ready to Cook,each,3.44,,in_stock,TRUE,Frozen 40g; made on order
+Beef BBQ Cheese Patties,wholesale,w-prep-bbq-patty,Ready to Cook,each,11.49,,in_stock,TRUE,"Fresh or frozen 100g, 100mm; in stock"
+Rump Steak Kebab 60G,wholesale,w-prep-beef-kb60,Ready to Cook,each,13.79,,in_stock,TRUE,Rump steak with green pepper & onions; made on order
+Rump Steak Kebab 100G,wholesale,w-prep-beef-kb100,Ready to Cook,each,18.39,,in_stock,TRUE,Rump steak with green pepper & onions; made on order
+Rump Steak Kebab 150G,wholesale,w-prep-beef-kb150,Ready to Cook,each,27.59,,in_stock,TRUE,Rump steak with green pepper & onions; made on order
+Rump Steak Kebab 200G,wholesale,w-prep-beef-kb200,Ready to Cook,each,40.24,,in_stock,TRUE,Rump steak with green pepper & onions; made on order
+Chicken Fillet Kebab 60G,wholesale,w-prep-chk-kb60,Ready to Cook,each,9.19,,in_stock,TRUE,Chicken fillet with green pepper & onions; made on order
+Chicken Fillet Kebab 100G,wholesale,w-prep-chk-kb100,Ready to Cook,each,13.79,,in_stock,TRUE,Chicken fillet with green pepper & onions; made on order
+Chicken Fillet Kebab 150G,wholesale,w-prep-chk-kb150,Ready to Cook,each,27.59,,in_stock,TRUE,Chicken fillet with green pepper & onions; made on order
+Chicken Fillet Kebab 200G,wholesale,w-prep-chk-kb200,Ready to Cook,each,27.59,,in_stock,TRUE,Chicken fillet with green pepper & onions; made on order
+Chicken Fillet P/Medium,wholesale,w-prep-chk-med,Ready to Cook,each,11.49,,in_stock,TRUE,Fresh or frozen 140g-160g; in stock
+Chicken Fillet P/Large,wholesale,w-prep-chk-lrg,Ready to Cook,each,14.94,,in_stock,TRUE,Fresh or frozen 165g-205g; in stock
+Chicken Leg Q P/Medium,wholesale,w-prep-leg-med,Ready to Cook,each,16.09,,in_stock,TRUE,Fresh or frozen 240g-275g; in stock
+Chicken Leg Q P/Large,wholesale,w-prep-leg-lrg,Ready to Cook,each,18.39,,in_stock,TRUE,Fresh or frozen 280g-305g; in stock
+Chicken Leg Q P/X Large,wholesale,w-prep-leg-xl,Ready to Cook,each,18.96,,in_stock,TRUE,Fresh or frozen 310g-340g; in stock
+Chips Fresh 7mm/10mm/12mm,wholesale,w-bulk-chips-fresh,Bulk & Pantry,kg,14.99,,in_stock,TRUE,No VAT; made fresh on order; lasts 5 days in the fridge
+Chips 7mm,wholesale,w-bulk-chips-7,Bulk & Pantry,each,35.99,,in_stock,TRUE,No VAT; frozen 2.5kg bags x 4 in a box; in stock
+Chips 10mm,wholesale,w-bulk-chips-10,Bulk & Pantry,each,29.99,,in_stock,TRUE,No VAT; frozen 2.5kg bags x 6 in a box; on order
+Chips 12mm,wholesale,w-bulk-chips-12,Bulk & Pantry,each,29.99,,in_stock,TRUE,No VAT; frozen 2.5kg bags x 6 in a box; on order
+Eggs Large 30 x 12 (No VAT),wholesale,w-bulk-eggs,Bulk & Pantry,each,779.99,,in_stock,TRUE,No VAT; R72.50 per tray; R2.42 per egg; in stock
+Mix Veg (10 x 1kg),wholesale,w-bulk-veg-mix,Bulk & Pantry,each,29.99,,in_stock,TRUE,No VAT; frozen 1kg x 10 bags; in stock
+Corn (10 x 1kg),wholesale,w-bulk-veg-corn,Bulk & Pantry,each,34.99,,in_stock,TRUE,No VAT; frozen 1kg x 10 bags; on order
+Green Beans (10 x 1kg),wholesale,w-bulk-veg-green-beans,Bulk & Pantry,each,34.99,,in_stock,TRUE,No VAT; frozen 1kg x 10 bags; on order
+Broccoli (10 x 1kg),wholesale,w-bulk-veg-broccoli,Bulk & Pantry,each,34.99,,in_stock,TRUE,No VAT; frozen 1kg x 10 bags; on order
+Diced Carrot (10 x 1kg),wholesale,w-bulk-veg-diced-carrot,Bulk & Pantry,each,34.99,,in_stock,TRUE,No VAT; frozen 1kg x 10 bags; on order
+Cauliflower (10 x 1kg),wholesale,w-bulk-veg-cauliflower,Bulk & Pantry,each,33.99,,in_stock,TRUE,No VAT; frozen 1kg x 10 bags; on order
+Hawai Mix (10 x 1kg),wholesale,w-bulk-veg-hawai,Bulk & Pantry,each,33.99,,in_stock,TRUE,No VAT; frozen 1kg x 10 bags; on order
+Carrot Round (10 x 1kg),wholesale,w-bulk-veg-carrot-round,Bulk & Pantry,each,30.99,,in_stock,TRUE,No VAT; frozen 1kg x 10 bags; on order
+Country Crop (10 x 1kg),wholesale,w-bulk-veg-country,Bulk & Pantry,each,32.99,,in_stock,TRUE,No VAT; frozen 1kg x 10 bags; on order
+Peas (10 x 1kg),wholesale,w-bulk-veg-peas,Bulk & Pantry,each,34.99,,in_stock,TRUE,No VAT; frozen 1kg x 10 bags; on order
+Country Mix (10 x 1kg),wholesale,w-bulk-veg-country-mix,Bulk & Pantry,each,37.99,,in_stock,TRUE,No VAT; frozen 1kg x 10 bags; on order
+Broccoli Florets (6 x 1kg),wholesale,w-bulk-veg-broccoli-florets,Bulk & Pantry,each,41.99,,in_stock,TRUE,No VAT; frozen 1kg x 6 bags; on order
+Mix Veg (10 x 900g),wholesale,w-bulk-veg-mix-900,Bulk & Pantry,each,34.99,,in_stock,TRUE,No VAT; frozen 900g x 10 bags; on order
+Mushroom Pieces & Stems (10 x 1kg),wholesale,w-bulk-veg-mushroom,Bulk & Pantry,each,37.99,,in_stock,TRUE,No VAT; frozen 1kg x 10 bags; on order
+Chicken Necks,wholesale,w-budget-chk-necks-1,Budget Items,each,28.74,,in_stock,TRUE,Frozen 1kg bags; in stock
+Chicken Necks Tray,wholesale,w-budget-chk-necks-tray,Budget Items,each,9.19,,in_stock,TRUE,Frozen 280g tray; in stock; for smaller portions or resale
+Chicken Liver,wholesale,w-budget-chk-liver-1,Budget Items,each,27.59,,in_stock,TRUE,1kg bags; in stock
+Chicken Liver 270G,wholesale,w-budget-chk-liver-270,Budget Items,each,9.19,,in_stock,TRUE,Packed in 270g trays; in stock; for smaller portions or resale
+Chicken Liver Frozen 1kg,wholesale,w-budget-chk-liver-frozen,Budget Items,each,28.74,,in_stock,TRUE,Frozen 1kg bags; in stock
+Chicken Gizzards/Maggies,wholesale,w-budget-giz-1,Budget Items,each,41.39,,in_stock,TRUE,Frozen 1kg bags; in stock
+Chicken Gizzards/Maggies Tray,wholesale,w-budget-giz-tray,Budget Items,each,13.79,,in_stock,TRUE,Frozen 250g tray; in stock; for smaller portions or resale
+Chicken Skins Tray,wholesale,w-budget-skins-tray,Budget Items,each,9.19,,in_stock,TRUE,Frozen 300g tray; in stock; for smaller portions or resale
+Chicken Chunks,wholesale,w-budget-chunks-1,Budget Items,each,28.74,,in_stock,TRUE,Frozen 1kg bags; in stock
+Chicken Chunks Tray,wholesale,w-budget-chunks-tray,Budget Items,each,9.19,,in_stock,TRUE,Frozen 300g tray; in stock; for smaller portions or resale
+Meaty Bones Wild,wholesale,w-budget-wild-bones,Budget Items,kg,22.99,,in_stock,TRUE,Frozen 20kg box; in stock
+Meaty Bones Wild Trays,wholesale,w-budget-bones-tray,Budget Items,each,20.00,,in_stock,TRUE,Frozen 700g tray; in stock; for smaller portions or resale
+Ground Beef Style Patties,wholesale,w-budget-gbf-patty,Budget Items,each,4.01,,in_stock,TRUE,"Frozen 80g patty, 100mm; in stock"
+Ground Beef Style Patties Tray,wholesale,w-budget-gbf-patty-tray,Budget Items,each,16.00,,in_stock,TRUE,4 patties per tray; in stock; for resale
+Ground Beef Style Meatballs,wholesale,w-budget-gbf-mball,Budget Items,each,2.00,,in_stock,TRUE,40g meatball; in stock
+Ground Beef Style Meatballs Tray,wholesale,w-budget-gbf-mball-tray,Budget Items,each,11.99,,in_stock,TRUE,10 meatballs per tray; in stock
+Ground Beef Style Mince,wholesale,w-budget-gbf-mince,Budget Items,each,30.00,,in_stock,TRUE,Frozen 1kg bags; made on order
+Ground Beef Style Mince Tray,wholesale,w-budget-gbf-mince-tray,Budget Items,each,9.19,,in_stock,TRUE,Frozen 300g tray; made on order; for smaller portions or resale
+French Polony 250g,wholesale,w-budget-pol-250,Budget Items,each,9.19,,in_stock,TRUE,Fresh 250g roll; made on order; ready to eat
+Garlic French Polony 250g,wholesale,w-budget-pol-garl,Budget Items,each,9.19,,in_stock,TRUE,Fresh 250g roll; made on order; ready to eat
+Chicken Polony 250g,wholesale,w-budget-pol-chk,Budget Items,each,9.19,,in_stock,TRUE,Fresh 250g roll; made on order; ready to eat
+French Polony 1.8kg,wholesale,w-budget-polony,Budget Items,each,57.49,,in_stock,TRUE,Fresh 1.8kg roll; made on order; ready to eat
