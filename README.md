@@ -15,6 +15,7 @@ Open:
 
 - Website: `http://127.0.0.1:8788/`
 - Local owner dashboard: `http://127.0.0.1:8788/admin/`
+- Local WhatsApp specials builder: `http://127.0.0.1:8788/admin/specials/`
 
 The Cloudflare development command uses a local D1 database and seeds the 83 products from `src/shop/products.ts` automatically.
 

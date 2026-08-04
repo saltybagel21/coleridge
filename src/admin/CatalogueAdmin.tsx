@@ -6,6 +6,7 @@ import {
   EyeOff,
   Loader2,
   LogOut,
+  Megaphone,
   Package,
   Pencil,
   Plus,
@@ -184,6 +185,13 @@ const CatalogueAdmin: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <a
+              href="/admin/specials/"
+              title="WhatsApp specials builder"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-stone-700 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-stone-300 transition-colors hover:bg-stone-900 hover:text-stone-100"
+            >
+              <Megaphone size={16} /> <span className="hidden sm:inline">Specials</span>
+            </a>
             <button
               type="button"
               onClick={() => void load()}

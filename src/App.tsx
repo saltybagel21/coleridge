@@ -25,6 +25,7 @@ import { CartDrawer } from './shop/CartDrawer';
 import { CheckoutModal } from './shop/CheckoutModal';
 
 const CatalogueAdmin = lazy(() => import('./admin/CatalogueAdmin'));
+const SpecialsBuilder = lazy(() => import('./admin/SpecialsBuilder'));
 
 // ============================================================================
 // BUSINESS INFO CONFIGURATION
@@ -1824,12 +1825,21 @@ const Footer = () => {
 
 // Hidden admin route — not linked from public nav
 function App() {
-  const [isAdminRoute] = useState(
-    () => window.location.pathname === "/admin" || window.location.pathname === "/admin/"
-  );
+  const [adminRoute] = useState<"catalogue" | "specials" | null>(() => {
+    const path = window.location.pathname.replace(/\/+$/, "") || "/";
+    if (path === "/admin/specials") return "specials";
+    if (path === "/admin") return "catalogue";
+    return null;
+  });
 
   useEffect(() => {
-    if (isAdminRoute) {
+    if (!adminRoute && window.location.hash === "#cm-specials-portal") {
+      window.location.replace("/admin/specials/");
+    }
+  }, [adminRoute]);
+
+  useEffect(() => {
+    if (adminRoute) {
       return;
     }
 
@@ -1886,9 +1896,9 @@ function App() {
     window.addEventListener("hashchange", handleHashChange);
 
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, [isAdminRoute]);
+  }, [adminRoute]);
 
-  if (isAdminRoute) {
+  if (adminRoute) {
     return (
       <Suspense
         fallback={
@@ -1897,12 +1907,14 @@ function App() {
               <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-burgundy-400">
                 Coleridge Meat
               </div>
-              <h1 className="mt-4 font-serif text-4xl text-stone-100">Loading catalogue manager...</h1>
+              <h1 className="mt-4 font-serif text-4xl text-stone-100">
+                {adminRoute === "specials" ? "Loading specials builder..." : "Loading catalogue manager..."}
+              </h1>
             </div>
           </div>
         }
       >
-        <CatalogueAdmin />
+        {adminRoute === "specials" ? <SpecialsBuilder /> : <CatalogueAdmin />}
       </Suspense>
     );
   }

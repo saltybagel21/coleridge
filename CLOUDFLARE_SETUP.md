@@ -81,6 +81,13 @@ The API does not trust the browser or the email header alone. It verifies the Cl
 
 ## 6. Use the dashboard
 
+The secured owner tools are available at:
+
+- Catalogue manager: `/admin/`
+- WhatsApp specials builder: `/admin/specials/`
+
+The specials builder loads the same live D1 catalogue, saves its current campaign draft in the owner's browser, and opens WhatsApp with the finished message ready to send.
+
 Open `https://www.coleridgemeat.co.za/admin/`. Cloudflare sends a one-time login code to Stefan's approved email address.
 
 Stefan can:
