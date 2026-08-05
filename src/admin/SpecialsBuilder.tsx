@@ -8,6 +8,7 @@ import {
   Clipboard,
   Copy,
   ExternalLink,
+  FileText,
   Loader2,
   LogOut,
   Megaphone,
@@ -29,15 +30,21 @@ type SessionResponse = { authenticated: true; email: string };
 
 type CampaignDetails = {
   title: string;
+  subtitle: string;
   openingLine: string;
   startDate: string;
   endDate: string;
+  validityLine: string;
   note: string;
+  orderInstructions: string;
 };
 
 type DealItem = {
   productId: string;
   specialPrice: string;
+  displayName: string;
+  pricingMode: "fixed" | "rule";
+  rule: string;
 };
 
 type SavedDraft = {
@@ -45,6 +52,7 @@ type SavedDraft = {
   selectedItems: DealItem[];
   category: string;
   onlyAvailable: boolean;
+  manualMessage: string | null;
 };
 
 type CampaignTemplate = {
@@ -59,10 +67,13 @@ const DRAFT_KEY = "cm-specials-builder-v2";
 
 const EMPTY_DETAILS: CampaignDetails = {
   title: "Weekly Specials",
+  subtitle: "Coleridge Meat | Stellenbosch",
   openingLine: "Fresh value from the Coleridge Meat counter.",
   startDate: "",
   endDate: "",
+  validityLine: "",
   note: "While stocks last. Please confirm availability when ordering.",
+  orderInstructions: "Reply to this message and our team will confirm availability and collection or delivery.",
 };
 
 const TEMPLATES: CampaignTemplate[] = [
@@ -106,9 +117,21 @@ const loadDraft = (): SavedDraft | null => {
   try {
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as SavedDraft;
+    const parsed = JSON.parse(raw) as Partial<SavedDraft>;
     if (!parsed.details || !Array.isArray(parsed.selectedItems)) return null;
-    return parsed;
+    return {
+      details: { ...EMPTY_DETAILS, ...parsed.details },
+      selectedItems: parsed.selectedItems.map((item) => ({
+        productId: item.productId,
+        specialPrice: item.specialPrice ?? "",
+        displayName: item.displayName ?? "",
+        pricingMode: item.pricingMode === "rule" ? "rule" : "fixed",
+        rule: item.rule ?? "",
+      })),
+      category: parsed.category ?? "All",
+      onlyAvailable: parsed.onlyAvailable ?? true,
+      manualMessage: typeof parsed.manualMessage === "string" ? parsed.manualMessage : null,
+    };
   } catch {
     return null;
   }
@@ -153,10 +176,10 @@ const discountPercent = (product: Product, specialPrice: string) => {
 
 const buildMessage = (
   details: CampaignDetails,
-  items: Array<{ product: Product; specialPrice: string }>,
+  items: Array<DealItem & { product: Product }>,
 ) => {
   const lines: string[] = [];
-  const groups = new Map<string, Array<{ product: Product; specialPrice: string }>>();
+  const groups = new Map<string, Array<DealItem & { product: Product }>>();
 
   items.forEach((item) => {
     const current = groups.get(item.product.category) ?? [];
@@ -165,9 +188,11 @@ const buildMessage = (
   });
 
   lines.push(`*${details.title.trim() || "Coleridge Meat Specials"}*`);
-  lines.push("_Coleridge Meat | Stellenbosch_");
+  if (details.subtitle.trim()) lines.push(`_${details.subtitle.trim()}_`);
 
-  if (details.startDate && details.endDate) {
+  if (details.validityLine.trim()) {
+    lines.push(details.validityLine.trim());
+  } else if (details.startDate && details.endDate) {
     lines.push(`Valid ${formatDate(details.startDate)} to ${formatDate(details.endDate)}`);
   } else if (details.startDate) {
     lines.push(`Valid from ${formatDate(details.startDate)}`);
@@ -184,9 +209,19 @@ const buildMessage = (
     lines.push("");
     lines.push(`*${category.toUpperCase()}*`);
 
-    categoryItems.forEach(({ product, specialPrice }) => {
+    categoryItems.forEach(({ product, specialPrice, displayName, pricingMode, rule }) => {
+      const name = displayName.trim() || product.name;
+      if (pricingMode === "rule") {
+        lines.push(`- *${name}*`);
+        rule
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .forEach((line) => lines.push(`  ${line}`));
+        return;
+      }
       const price = numericPrice(specialPrice);
-      lines.push(`- *${product.name}* - ${messagePrice(product, specialPrice)}`);
+      lines.push(`- *${name}* - ${messagePrice(product, specialPrice)}`);
 
       if (price != null && product.price > 0 && price < product.price) {
         const saving = product.price - price;
@@ -205,7 +240,7 @@ const buildMessage = (
 
   lines.push("");
   lines.push("*To order*");
-  lines.push("Reply to this message and our team will confirm availability and collection or delivery.");
+  if (details.orderInstructions.trim()) lines.push(details.orderInstructions.trim());
   lines.push("");
   lines.push("*Coleridge Meat*");
   lines.push("18 Tennant Road, Cloetesville, Stellenbosch");
@@ -239,6 +274,8 @@ const SpecialsBuilder: React.FC = () => {
   const [onlyAvailable, setOnlyAvailable] = useState(savedDraft?.onlyAvailable ?? true);
   const [details, setDetails] = useState<CampaignDetails>(savedDraft?.details ?? EMPTY_DETAILS);
   const [selectedItems, setSelectedItems] = useState<DealItem[]>(savedDraft?.selectedItems ?? []);
+  const [manualMessage, setManualMessage] = useState<string | null>(savedDraft?.manualMessage ?? null);
+  const [messageView, setMessageView] = useState<"preview" | "edit">("preview");
   const [customDiscount, setCustomDiscount] = useState("");
   const [copied, setCopied] = useState(false);
 
@@ -275,8 +312,8 @@ const SpecialsBuilder: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    saveDraft({ details, selectedItems, category, onlyAvailable });
-  }, [details, selectedItems, category, onlyAvailable]);
+    saveDraft({ details, selectedItems, category, onlyAvailable, manualMessage });
+  }, [details, selectedItems, category, onlyAvailable, manualMessage]);
 
   useEffect(() => {
     if (!notice) return;
@@ -313,28 +350,50 @@ const SpecialsBuilder: React.FC = () => {
   }, [products, query, category, onlyAvailable]);
 
   const selectedProducts = useMemo(() => {
-    const byId = new Map(products.map((product) => [product.id, product]));
+    const byId = new Map<string, Product>(
+      products.map((product): [string, Product] => [product.id, product]),
+    );
     return selectedItems
       .map((item) => {
         const product = byId.get(item.productId);
-        return product ? { ...item, product } : null;
+        return product
+          ? {
+              ...item,
+              displayName: item.displayName || product.name,
+              pricingMode: item.pricingMode || "fixed",
+              rule: item.rule || "",
+              product,
+            }
+          : null;
       })
       .filter((item): item is DealItem & { product: Product } => item !== null);
   }, [products, selectedItems]);
 
-  const message = useMemo(() => buildMessage(details, selectedProducts), [details, selectedProducts]);
-  const dateError = Boolean(details.startDate && details.endDate && details.endDate < details.startDate);
+  const generatedMessage = useMemo(
+    () => buildMessage(details, selectedProducts),
+    [details, selectedProducts],
+  );
+  const message = manualMessage ?? generatedMessage;
+  const dateError = Boolean(
+    !details.validityLine.trim() && details.startDate && details.endDate && details.endDate < details.startDate,
+  );
   const invalidPriceCount = selectedProducts.filter(
-    ({ product, specialPrice }) => numericPrice(specialPrice) == null && !product.priceLabel,
+    ({ product, specialPrice, pricingMode, rule }) =>
+      pricingMode === "rule"
+        ? !rule.trim()
+        : numericPrice(specialPrice) == null && !product.priceLabel,
   ).length;
-  const canSend = selectedProducts.length > 0 && !dateError && invalidPriceCount === 0;
-  const discountedCount = selectedProducts.filter(({ product, specialPrice }) =>
-    Boolean(discountPercent(product, specialPrice)),
+  const canSend = Boolean(
+    message.trim() && !dateError && (manualMessage != null || (selectedProducts.length > 0 && invalidPriceCount === 0)),
+  );
+  const discountedCount = selectedProducts.filter(({ product, specialPrice, pricingMode }) =>
+    pricingMode === "fixed" && Boolean(discountPercent(product, specialPrice)),
   ).length;
   const averageDiscount = discountedCount
     ? Math.round(
         selectedProducts.reduce(
-          (sum, { product, specialPrice }) => sum + discountPercent(product, specialPrice),
+          (sum, { product, specialPrice, pricingMode }) =>
+            sum + (pricingMode === "fixed" ? discountPercent(product, specialPrice) : 0),
           0,
         ) / discountedCount,
       )
@@ -347,7 +406,13 @@ const SpecialsBuilder: React.FC = () => {
       }
       return [
         ...current,
-        { productId: product.id, specialPrice: product.price > 0 ? product.price.toFixed(2) : "" },
+        {
+          productId: product.id,
+          specialPrice: product.price > 0 ? product.price.toFixed(2) : "",
+          displayName: product.name,
+          pricingMode: "fixed",
+          rule: "",
+        },
       ];
     });
   };
@@ -355,6 +420,12 @@ const SpecialsBuilder: React.FC = () => {
   const updatePrice = (productId: string, specialPrice: string) => {
     setSelectedItems((current) =>
       current.map((item) => (item.productId === productId ? { ...item, specialPrice } : item)),
+    );
+  };
+
+  const updateItem = <K extends keyof DealItem>(productId: string, key: K, value: DealItem[K]) => {
+    setSelectedItems((current) =>
+      current.map((item) => (item.productId === productId ? { ...item, [key]: value } : item)),
     );
   };
 
@@ -370,14 +441,24 @@ const SpecialsBuilder: React.FC = () => {
 
   const applyDiscount = (percentage: number) => {
     if (!Number.isFinite(percentage) || percentage <= 0 || percentage >= 100) return;
+    const eligibleCount = selectedItems.filter((item) => {
+      const product = products.find((candidate) => candidate.id === item.productId);
+      return item.pricingMode === "fixed" && product && product.price > 0;
+    }).length;
+    if (!eligibleCount) {
+      setNotice("Add a fixed-price offer before applying a bulk discount.");
+      return;
+    }
     setSelectedItems((current) =>
       current.map((item) => {
         const product = products.find((candidate) => candidate.id === item.productId);
-        if (!product || product.price <= 0) return item;
+        if (!product || product.price <= 0 || item.pricingMode === "rule") return item;
         return { ...item, specialPrice: (product.price * (1 - percentage / 100)).toFixed(2) };
       }),
     );
-    setNotice(`${percentage}% discount applied to selected products.`);
+    setNotice(
+      `${percentage}% discount applied to ${eligibleCount} fixed-price ${eligibleCount === 1 ? "offer" : "offers"}.`,
+    );
   };
 
   const restorePrices = () => {
@@ -386,7 +467,10 @@ const SpecialsBuilder: React.FC = () => {
         const product = products.find((candidate) => candidate.id === item.productId);
         return {
           ...item,
-          specialPrice: product && product.price > 0 ? product.price.toFixed(2) : "",
+          specialPrice:
+            item.pricingMode === "fixed" && product && product.price > 0
+              ? product.price.toFixed(2)
+              : item.specialPrice,
         };
       }),
     );
@@ -434,6 +518,8 @@ const SpecialsBuilder: React.FC = () => {
     setCategory("All");
     setOnlyAvailable(true);
     setCustomDiscount("");
+    setManualMessage(null);
+    setMessageView("preview");
     try {
       localStorage.removeItem(DRAFT_KEY);
     } catch {
@@ -584,6 +670,15 @@ const SpecialsBuilder: React.FC = () => {
                     placeholder="Weekend Braai Specials"
                   />
                 </label>
+                <label className="sm:col-span-2">
+                  <span className={labelClass}>Subtitle</span>
+                  <input
+                    value={details.subtitle}
+                    onChange={(event) => setDetails((current) => ({ ...current, subtitle: event.target.value }))}
+                    className={inputClass}
+                    placeholder="Coleridge Meat | Stellenbosch"
+                  />
+                </label>
                 <label>
                   <span className={labelClass}>Starts</span>
                   <input
@@ -607,23 +702,48 @@ const SpecialsBuilder: React.FC = () => {
                   />
                 </label>
                 <label className="sm:col-span-2">
-                  <span className={labelClass}>Opening line</span>
+                  <span className={labelClass}>Custom validity wording (optional)</span>
                   <input
+                    value={details.validityLine}
+                    onChange={(event) =>
+                      setDetails((current) => ({ ...current, validityLine: event.target.value }))
+                    }
+                    className={inputClass}
+                    placeholder="Valid this Friday only, from 08:00 while stocks last"
+                  />
+                </label>
+                <label className="sm:col-span-2">
+                  <span className={labelClass}>Opening message</span>
+                  <textarea
+                    rows={3}
                     value={details.openingLine}
                     onChange={(event) =>
                       setDetails((current) => ({ ...current, openingLine: event.target.value }))
                     }
-                    className={inputClass}
+                    className={`${inputClass} resize-y`}
                     placeholder="Fresh value from the counter."
                   />
                 </label>
                 <label className="sm:col-span-2">
                   <span className={labelClass}>Terms or order note</span>
                   <textarea
+                    rows={3}
                     value={details.note}
                     onChange={(event) => setDetails((current) => ({ ...current, note: event.target.value }))}
-                    className={`${inputClass} min-h-24 resize-y`}
+                    className={`${inputClass} resize-y`}
                     placeholder="While stocks last."
+                  />
+                </label>
+                <label className="sm:col-span-2">
+                  <span className={labelClass}>Order instructions</span>
+                  <textarea
+                    rows={3}
+                    value={details.orderInstructions}
+                    onChange={(event) =>
+                      setDetails((current) => ({ ...current, orderInstructions: event.target.value }))
+                    }
+                    className={`${inputClass} resize-y`}
+                    placeholder="Reply to this message to place an order."
                   />
                 </label>
               </div>
@@ -749,7 +869,7 @@ const SpecialsBuilder: React.FC = () => {
               {selectedProducts.length > 0 && (
                 <div className="mt-4 flex flex-wrap items-center gap-2 border-y border-stone-800 py-3">
                   <span className="mr-1 inline-flex items-center gap-2 text-xs text-stone-500">
-                    <BadgePercent size={14} /> Apply to all
+                    <BadgePercent size={14} /> Apply to fixed
                   </span>
                   {[5, 10, 15, 20].map((percentage) => (
                     <button
@@ -789,9 +909,12 @@ const SpecialsBuilder: React.FC = () => {
                     <p className="mt-1 text-xs text-stone-600">They will appear here in message order.</p>
                   </div>
                 ) : (
-                  selectedProducts.map(({ product, specialPrice }, index) => {
+                  selectedProducts.map(({ product, specialPrice, displayName, pricingMode, rule }, index) => {
                     const percent = discountPercent(product, specialPrice);
-                    const invalid = numericPrice(specialPrice) == null && !product.priceLabel;
+                    const invalid =
+                      pricingMode === "rule"
+                        ? !rule.trim()
+                        : numericPrice(specialPrice) == null && !product.priceLabel;
                     return (
                       <div key={product.id} className="rounded-md border border-stone-800 bg-stone-900/40 p-4">
                         <div className="flex items-start gap-3">
@@ -832,25 +955,76 @@ const SpecialsBuilder: React.FC = () => {
                                 <Trash2 size={15} />
                               </button>
                             </div>
-                            <div className="mt-3 flex items-center gap-3">
-                              <label className="relative block flex-1">
-                                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-stone-500">R</span>
-                                <input
-                                  value={specialPrice}
-                                  onChange={(event) => updatePrice(product.id, event.target.value)}
-                                  inputMode="decimal"
-                                  className={`${inputClass} pl-8 ${invalid ? "border-red-700" : ""}`}
-                                  placeholder="Offer price"
+                            <label className="mt-3 block">
+                              <span className={labelClass}>Special name</span>
+                              <input
+                                value={displayName}
+                                onChange={(event) => updateItem(product.id, "displayName", event.target.value)}
+                                className={inputClass}
+                                placeholder={product.name}
+                              />
+                            </label>
+                            <div className="mt-3 inline-flex rounded-md border border-stone-700 bg-stone-950 p-1">
+                              <button
+                                type="button"
+                                onClick={() => updateItem(product.id, "pricingMode", "fixed")}
+                                className={`h-8 rounded px-3 text-xs font-semibold transition-colors ${
+                                  pricingMode === "fixed"
+                                    ? "bg-burgundy-700 text-white"
+                                    : "text-stone-500 hover:text-stone-200"
+                                }`}
+                              >
+                                Fixed price
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateItem(product.id, "pricingMode", "rule")}
+                                className={`h-8 rounded px-3 text-xs font-semibold transition-colors ${
+                                  pricingMode === "rule"
+                                    ? "bg-burgundy-700 text-white"
+                                    : "text-stone-500 hover:text-stone-200"
+                                }`}
+                              >
+                                Rule pricing
+                              </button>
+                            </div>
+                            {pricingMode === "fixed" ? (
+                              <div className="mt-3 flex items-center gap-3">
+                                <label className="relative block flex-1">
+                                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-stone-500">R</span>
+                                  <input
+                                    value={specialPrice}
+                                    onChange={(event) => updatePrice(product.id, event.target.value)}
+                                    inputMode="decimal"
+                                    aria-label={`Offer price for ${displayName || product.name}`}
+                                    className={`${inputClass} pl-8 ${invalid ? "border-red-700" : ""}`}
+                                    placeholder="Offer price"
+                                  />
+                                </label>
+                                <span className="w-14 shrink-0 text-xs text-stone-500">/{product.unit}</span>
+                                {percent > 0 && (
+                                  <span className="shrink-0 rounded border border-emerald-800 bg-emerald-950/60 px-2 py-1 text-[10px] font-semibold text-emerald-300">
+                                    -{percent}%
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <label className="mt-3 block">
+                                <span className={labelClass}>Rule or tiered prices</span>
+                                <textarea
+                                  rows={4}
+                                  value={rule}
+                                  onChange={(event) => updateItem(product.id, "rule", event.target.value)}
+                                  className={`${inputClass} resize-y ${invalid ? "border-red-700" : ""}`}
+                                  placeholder={"Up to 5kg: R68.99/kg\n5kg and over: R62.99/kg"}
                                 />
                               </label>
-                              <span className="w-14 shrink-0 text-xs text-stone-500">/{product.unit}</span>
-                              {percent > 0 && (
-                                <span className="shrink-0 rounded border border-emerald-800 bg-emerald-950/60 px-2 py-1 text-[10px] font-semibold text-emerald-300">
-                                  -{percent}%
-                                </span>
-                              )}
-                            </div>
-                            {invalid && <p className="mt-2 text-xs text-red-300">Enter a valid offer price.</p>}
+                            )}
+                            {invalid && (
+                              <p className="mt-2 text-xs text-red-300">
+                                {pricingMode === "rule" ? "Add the rule or tiered prices." : "Enter a valid offer price."}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -876,22 +1050,68 @@ const SpecialsBuilder: React.FC = () => {
                 </div>
               </div>
 
-              <div className="mt-5 rounded-md border border-stone-800 bg-[#0b141a] p-4 sm:p-5">
-                <div className="ml-auto max-w-[92%] break-words rounded-md rounded-tr-none bg-[#005c4b] px-4 py-3 text-[13px] leading-6 text-white shadow-lg [overflow-wrap:anywhere] sm:max-w-[88%]">
-                  {message.split("\n").map((line, index) => (
-                    <p key={`${line}-${index}`} className={line ? "min-h-6" : "h-3"}>
-                      {renderWhatsAppLine(line)}
-                    </p>
-                  ))}
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-b border-stone-800 pb-3">
+                <div className="inline-flex rounded-md border border-stone-700 bg-stone-950 p-1" role="tablist">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={messageView === "preview"}
+                    onClick={() => setMessageView("preview")}
+                    className={`inline-flex h-8 items-center gap-2 rounded px-3 text-xs font-semibold transition-colors ${
+                      messageView === "preview" ? "bg-stone-800 text-white" : "text-stone-500 hover:text-stone-200"
+                    }`}
+                  >
+                    <Clipboard size={13} /> Preview
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={messageView === "edit"}
+                    onClick={() => setMessageView("edit")}
+                    className={`inline-flex h-8 items-center gap-2 rounded px-3 text-xs font-semibold transition-colors ${
+                      messageView === "edit" ? "bg-stone-800 text-white" : "text-stone-500 hover:text-stone-200"
+                    }`}
+                  >
+                    <FileText size={13} /> Edit message
+                  </button>
                 </div>
+                {manualMessage != null && (
+                  <button
+                    type="button"
+                    onClick={() => setManualMessage(null)}
+                    className="inline-flex h-8 items-center gap-2 text-xs text-stone-400 transition-colors hover:text-white"
+                  >
+                    <RotateCcw size={13} /> Use generated message
+                  </button>
+                )}
               </div>
+
+              {messageView === "preview" ? (
+                <div className="mt-4 rounded-md border border-stone-800 bg-[#0b141a] p-4 sm:p-5">
+                  <div className="ml-auto max-w-[92%] break-words rounded-md rounded-tr-none bg-[#005c4b] px-4 py-3 text-[13px] leading-6 text-white shadow-lg [overflow-wrap:anywhere] sm:max-w-[88%]">
+                    {message.split("\n").map((line, index) => (
+                      <p key={`${line}-${index}`} className={line ? "min-h-6" : "h-3"}>
+                        {renderWhatsAppLine(line)}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <textarea
+                  value={message}
+                  onChange={(event) => setManualMessage(event.target.value)}
+                  rows={20}
+                  aria-label="Final WhatsApp message"
+                  className={`${inputClass} mt-4 min-h-[420px] resize-y font-mono text-[13px] leading-6`}
+                />
+              )}
 
               {message.length > 3500 && (
                 <p className="mt-3 text-xs text-amber-300">
                   This is a long message. Consider using fewer products for easier reading.
                 </p>
               )}
-              {!selectedProducts.length && (
+              {!selectedProducts.length && manualMessage == null && (
                 <p className="mt-3 text-xs text-stone-500">Select at least one product before sending.</p>
               )}
 

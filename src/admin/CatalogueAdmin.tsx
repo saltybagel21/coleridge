@@ -399,8 +399,8 @@ const CatalogueAdmin: React.FC = () => {
                 <textarea rows={4} value={draft.note ?? ""} onChange={(event) => updateDraft("note", event.target.value)} className={`${inputClass} resize-none`} />
               </div>
               <div className="grid gap-4 sm:grid-cols-3">
-                <div><label className={labelClass}>Minimum</label><input type="number" min="0" step="0.1" value={draft.minQty ?? ""} onChange={(event) => updateDraft("minQty", event.target.value === "" ? undefined : Number(event.target.value))} className={inputClass} /></div>
-                <div><label className={labelClass}>Quantity step</label><input type="number" min="0.01" step="0.1" value={draft.qtyStep ?? ""} onChange={(event) => updateDraft("qtyStep", event.target.value === "" ? undefined : Number(event.target.value))} className={inputClass} /></div>
+                <div><label className={labelClass}>Minimum</label><input type="number" min="0" step="0.01" value={draft.minQty ?? ""} onChange={(event) => updateDraft("minQty", event.target.value === "" ? undefined : Number(event.target.value))} className={inputClass} /></div>
+                <div><label className={labelClass}>Quantity step</label><input type="number" min="0.01" step="0.01" value={draft.qtyStep ?? ""} onChange={(event) => updateDraft("qtyStep", event.target.value === "" ? undefined : Number(event.target.value))} className={inputClass} /></div>
                 <div><label className={labelClass}>Display order</label><input type="number" min="0" step="1" value={draft.sortOrder ?? ""} onChange={(event) => updateDraft("sortOrder", event.target.value === "" ? undefined : Number(event.target.value))} className={inputClass} /></div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">

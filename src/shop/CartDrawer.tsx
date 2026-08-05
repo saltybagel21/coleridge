@@ -1,7 +1,55 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCart, getQuantityRules, formatProductName, formatQty, formatZAR } from "./CartContext";
+
+const QuantityInput: React.FC<{
+  id: string;
+  qty: number;
+  minQty: number;
+  maxQty?: number;
+  step: number;
+  setQty: (id: string, qty: number) => void;
+  remove: (id: string) => void;
+}> = ({ id, qty, minQty, maxQty, step, setQty, remove }) => {
+  const [draft, setDraft] = useState(String(qty));
+
+  useEffect(() => setDraft(String(qty)), [qty]);
+
+  const commit = () => {
+    const value = Number.parseFloat(draft);
+    if (!Number.isFinite(value)) {
+      setDraft(String(qty));
+      return;
+    }
+    if (value <= 0) {
+      remove(id);
+      return;
+    }
+    setQty(id, value);
+  };
+
+  return (
+    <input
+      type="number"
+      min={minQty}
+      max={maxQty}
+      step={step}
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") event.currentTarget.blur();
+        if (event.key === "Escape") {
+          setDraft(String(qty));
+          event.currentTarget.blur();
+        }
+      }}
+      aria-label="Quantity"
+      className="h-8 w-16 bg-transparent text-center text-sm text-stone-100 focus:outline-none"
+    />
+  );
+};
 
 export const CartDrawer: React.FC = () => {
   const {
@@ -88,12 +136,6 @@ export const CartDrawer: React.FC = () => {
                       setQty(line.product.id, maxQty ? Math.min(maxQty, next) : next);
                     };
 
-                    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-                      const value = parseFloat(event.target.value);
-                      if (Number.isNaN(value)) return;
-                      setQty(line.product.id, value);
-                    };
-
                     return (
                       <li key={line.product.id} className="flex gap-4 p-5">
                         <div className="min-w-0 flex-1">
@@ -125,14 +167,14 @@ export const CartDrawer: React.FC = () => {
                               >
                                 <Minus size={14} />
                               </button>
-                              <input
-                                type="number"
-                                min={minQty}
-                                max={maxQty}
+                              <QuantityInput
+                                id={line.product.id}
+                                qty={line.qty}
+                                minQty={minQty}
+                                maxQty={maxQty}
                                 step={step}
-                                value={line.qty}
-                                onChange={handleChange}
-                                className="h-8 w-16 bg-transparent text-center text-sm text-stone-100 focus:outline-none"
+                                setQty={setQty}
+                                remove={remove}
                               />
                               <button
                                 onClick={increment}
