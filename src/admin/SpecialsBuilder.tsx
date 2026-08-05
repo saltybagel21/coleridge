@@ -35,6 +35,7 @@ type CampaignDetails = {
   startDate: string;
   endDate: string;
   validityLine: string;
+  includeYear: boolean;
   note: string;
   orderInstructions: string;
 };
@@ -61,9 +62,15 @@ type CampaignTemplate = {
   title: string;
   openingLine: string;
   note: string;
+  subtitle?: string;
+  validityLine?: string;
+  includeYear?: boolean;
+  orderInstructions?: string;
+  custom?: boolean;
 };
 
 const DRAFT_KEY = "cm-specials-builder-v2";
+const CUSTOM_TEMPLATES_KEY = "cm-specials-custom-templates-v1";
 
 const EMPTY_DETAILS: CampaignDetails = {
   title: "Weekly Specials",
@@ -72,6 +79,7 @@ const EMPTY_DETAILS: CampaignDetails = {
   startDate: "",
   endDate: "",
   validityLine: "",
+  includeYear: true,
   note: "While stocks last. Please confirm availability when ordering.",
   orderInstructions: "Reply to this message and our team will confirm availability and collection or delivery.",
 };
@@ -145,14 +153,42 @@ const saveDraft = (draft: SavedDraft) => {
   }
 };
 
-const formatDate = (value: string) => {
+const loadCustomTemplates = (): CampaignTemplate[] => {
+  try {
+    const raw = localStorage.getItem(CUSTOM_TEMPLATES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as CampaignTemplate[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (template) =>
+        template &&
+        template.custom === true &&
+        typeof template.id === "string" &&
+        typeof template.label === "string" &&
+        typeof template.title === "string",
+    );
+  } catch {
+    return [];
+  }
+};
+
+const saveCustomTemplates = (templates: CampaignTemplate[]) => {
+  try {
+    localStorage.setItem(CUSTOM_TEMPLATES_KEY, JSON.stringify(templates));
+  } catch {
+    // Presets remain optional if browser storage is unavailable.
+  }
+};
+
+const formatDate = (value: string, includeYear: boolean) => {
   if (!value) return "";
   const [year, month, day] = value.split("-").map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString("en-ZA", {
+  const options: Intl.DateTimeFormatOptions = {
     day: "numeric",
     month: "long",
-    year: "numeric",
-  });
+    ...(includeYear ? { year: "numeric" } : {}),
+  };
+  return new Date(year, month - 1, day).toLocaleDateString("en-ZA", options);
 };
 
 const formatMoney = (value: number) => `R${value.toFixed(2)}`;
@@ -193,11 +229,13 @@ const buildMessage = (
   if (details.validityLine.trim()) {
     lines.push(details.validityLine.trim());
   } else if (details.startDate && details.endDate) {
-    lines.push(`Valid ${formatDate(details.startDate)} to ${formatDate(details.endDate)}`);
+    lines.push(
+      `Valid ${formatDate(details.startDate, details.includeYear)} to ${formatDate(details.endDate, details.includeYear)}`,
+    );
   } else if (details.startDate) {
-    lines.push(`Valid from ${formatDate(details.startDate)}`);
+    lines.push(`Valid from ${formatDate(details.startDate, details.includeYear)}`);
   } else if (details.endDate) {
-    lines.push(`Valid until ${formatDate(details.endDate)}`);
+    lines.push(`Valid until ${formatDate(details.endDate, details.includeYear)}`);
   }
 
   if (details.openingLine.trim()) {
@@ -276,6 +314,9 @@ const SpecialsBuilder: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<DealItem[]>(savedDraft?.selectedItems ?? []);
   const [manualMessage, setManualMessage] = useState<string | null>(savedDraft?.manualMessage ?? null);
   const [messageView, setMessageView] = useState<"preview" | "edit">("preview");
+  const [customTemplates, setCustomTemplates] = useState<CampaignTemplate[]>(loadCustomTemplates);
+  const [presetEditorOpen, setPresetEditorOpen] = useState(false);
+  const [presetName, setPresetName] = useState("");
   const [customDiscount, setCustomDiscount] = useState("");
   const [copied, setCopied] = useState(false);
 
@@ -314,6 +355,8 @@ const SpecialsBuilder: React.FC = () => {
   useEffect(() => {
     saveDraft({ details, selectedItems, category, onlyAvailable, manualMessage });
   }, [details, selectedItems, category, onlyAvailable, manualMessage]);
+
+  useEffect(() => saveCustomTemplates(customTemplates), [customTemplates]);
 
   useEffect(() => {
     if (!notice) return;
@@ -478,13 +521,60 @@ const SpecialsBuilder: React.FC = () => {
   };
 
   const applyTemplate = (template: CampaignTemplate) => {
-    setDetails((current) => ({
-      ...current,
-      title: template.title,
-      openingLine: template.openingLine,
-      note: template.note,
-    }));
+    setDetails((current) =>
+      template.custom
+        ? {
+            ...current,
+            title: template.title,
+            subtitle: template.subtitle ?? EMPTY_DETAILS.subtitle,
+            openingLine: template.openingLine,
+            validityLine: template.validityLine ?? "",
+            includeYear: template.includeYear ?? true,
+            note: template.note,
+            orderInstructions: template.orderInstructions ?? EMPTY_DETAILS.orderInstructions,
+          }
+        : {
+            ...current,
+            title: template.title,
+            openingLine: template.openingLine,
+            note: template.note,
+          },
+    );
     setNotice(`${template.label} campaign wording applied.`);
+  };
+
+  const savePreset = (event: React.FormEvent) => {
+    event.preventDefault();
+    const label = presetName.trim();
+    if (!label) return;
+    const existing = customTemplates.find(
+      (template) => template.label.toLowerCase() === label.toLowerCase(),
+    );
+    const preset: CampaignTemplate = {
+      id: existing?.id ?? `custom-${Date.now()}`,
+      label,
+      title: details.title,
+      subtitle: details.subtitle,
+      openingLine: details.openingLine,
+      validityLine: details.validityLine,
+      includeYear: details.includeYear,
+      note: details.note,
+      orderInstructions: details.orderInstructions,
+      custom: true,
+    };
+    setCustomTemplates((current) =>
+      existing
+        ? current.map((template) => (template.id === existing.id ? preset : template))
+        : [...current, preset],
+    );
+    setPresetName("");
+    setPresetEditorOpen(false);
+    setNotice(existing ? `${label} preset updated.` : `${label} preset saved.`);
+  };
+
+  const removePreset = (template: CampaignTemplate) => {
+    setCustomTemplates((current) => current.filter((item) => item.id !== template.id));
+    setNotice(`${template.label} preset removed.`);
   };
 
   const copyMessage = async () => {
@@ -648,7 +738,31 @@ const SpecialsBuilder: React.FC = () => {
               </div>
 
               <div className="mt-5 flex gap-2 overflow-x-auto pb-2">
-                {TEMPLATES.map((template) => (
+                {[...TEMPLATES, ...customTemplates].map((template) => (
+                  template.custom ? (
+                    <div
+                      key={template.id}
+                      className="inline-flex h-9 shrink-0 overflow-hidden rounded-md border border-stone-700 bg-stone-900"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => applyTemplate(template)}
+                        title={template.label}
+                        className="inline-flex min-w-0 items-center gap-2 px-3 text-xs text-stone-300 transition-colors hover:text-white"
+                      >
+                        <Sparkles size={13} className="shrink-0" />
+                        <span className="max-w-32 truncate">{template.label}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removePreset(template)}
+                        title={`Remove ${template.label} preset`}
+                        className="flex w-8 shrink-0 items-center justify-center border-l border-stone-700 text-stone-600 transition-colors hover:bg-stone-800 hover:text-red-300"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ) : (
                   <button
                     key={template.id}
                     type="button"
@@ -657,8 +771,47 @@ const SpecialsBuilder: React.FC = () => {
                   >
                     <Sparkles size={13} /> {template.label}
                   </button>
+                  )
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setPresetEditorOpen(true)}
+                  className="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border border-dashed border-stone-600 px-3 text-xs text-stone-400 transition-colors hover:border-burgundy-600 hover:text-white"
+                >
+                  <Plus size={13} /> Save preset
+                </button>
               </div>
+
+              {presetEditorOpen && (
+                <form onSubmit={savePreset} className="mt-2 flex flex-col gap-2 sm:flex-row">
+                  <input
+                    autoFocus
+                    value={presetName}
+                    onChange={(event) => setPresetName(event.target.value)}
+                    aria-label="Preset name"
+                    className={`${inputClass} min-w-0 flex-1`}
+                    placeholder="Preset name"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!presetName.trim()}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-burgundy-700 px-4 text-xs font-semibold text-white transition-colors hover:bg-burgundy-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Plus size={14} /> Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPresetName("");
+                      setPresetEditorOpen(false);
+                    }}
+                    title="Cancel preset"
+                    className="flex h-10 w-10 items-center justify-center rounded-md border border-stone-700 text-stone-400 hover:text-white"
+                  >
+                    <X size={15} />
+                  </button>
+                </form>
+              )}
 
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <label className="sm:col-span-2">
@@ -700,6 +853,17 @@ const SpecialsBuilder: React.FC = () => {
                     }
                     className={`${inputClass} ${dateError ? "border-red-700" : ""}`}
                   />
+                </label>
+                <label className="sm:col-span-2 inline-flex cursor-pointer items-center gap-3 text-xs text-stone-400">
+                  <input
+                    type="checkbox"
+                    checked={details.includeYear}
+                    onChange={(event) =>
+                      setDetails((current) => ({ ...current, includeYear: event.target.checked }))
+                    }
+                    className="h-4 w-4 accent-burgundy-600"
+                  />
+                  Include year in dates
                 </label>
                 <label className="sm:col-span-2">
                   <span className={labelClass}>Custom validity wording (optional)</span>
