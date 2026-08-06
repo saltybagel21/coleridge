@@ -51,6 +51,8 @@ const CatalogueAdmin: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [rowBusy, setRowBusy] = useState<string | null>(null);
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
+  const [priceValue, setPriceValue] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -158,6 +160,46 @@ const CatalogueAdmin: React.FC = () => {
       setNotice(message);
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : "The change could not be saved.");
+    } finally {
+      setRowBusy(null);
+    }
+  };
+
+  const startPriceEdit = (product: Product) => {
+    setEditingPriceId(product.id);
+    setPriceValue(product.price > 0 ? product.price.toFixed(2) : "");
+    setError("");
+  };
+
+  const cancelPriceEdit = () => {
+    setEditingPriceId(null);
+    setPriceValue("");
+  };
+
+  const saveInlinePrice = async (product: Product) => {
+    const parsedPrice = Number(priceValue);
+    if (priceValue.trim() === "" || !Number.isFinite(parsedPrice) || parsedPrice < 0 || parsedPrice > 1_000_000) {
+      setError("Enter a valid price between R0 and R1,000,000.");
+      return;
+    }
+
+    const price = Math.round((parsedPrice + Number.EPSILON) * 100) / 100;
+    const updatedProduct = {
+      ...product,
+      price,
+      ...(price > 0 && product.priceLabel ? { priceLabel: undefined } : {}),
+    };
+
+    setRowBusy(product.id);
+    setError("");
+    try {
+      const result = await persist(updatedProduct, false);
+      replaceProduct(result.product);
+      if (draft?.id === product.id) setDraft(result.product);
+      cancelPriceEdit();
+      setNotice(`${product.name} price updated to ${formatZAR(result.product.price)}.`);
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "The price could not be saved.");
     } finally {
       setRowBusy(null);
     }
@@ -293,7 +335,7 @@ const CatalogueAdmin: React.FC = () => {
           </div>
         ) : (
           <div className="mt-6 overflow-hidden rounded-md border border-stone-800">
-            <div className="hidden grid-cols-[minmax(220px,1.3fr)_minmax(170px,0.8fr)_120px_160px_120px] gap-4 border-b border-stone-800 bg-stone-900/70 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500 lg:grid">
+            <div className="hidden grid-cols-[minmax(220px,1.3fr)_minmax(170px,0.8fr)_190px_160px_120px] gap-4 border-b border-stone-800 bg-stone-900/70 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500 lg:grid">
               <span>Product</span><span>Category</span><span>Price</span><span>Availability</span><span>Actions</span>
             </div>
             {filteredProducts.map((product) => {
@@ -302,7 +344,7 @@ const CatalogueAdmin: React.FC = () => {
               return (
                 <div
                   key={product.id}
-                  className={`grid gap-4 border-b border-stone-800 px-4 py-4 last:border-0 lg:grid-cols-[minmax(220px,1.3fr)_minmax(170px,0.8fr)_120px_160px_120px] lg:items-center ${product.enabled === false ? "bg-stone-950 opacity-60" : "bg-stone-900/25"}`}
+                  className={`grid gap-4 border-b border-stone-800 px-4 py-4 last:border-0 lg:grid-cols-[minmax(220px,1.3fr)_minmax(170px,0.8fr)_190px_160px_120px] lg:items-center ${product.enabled === false ? "bg-stone-950 opacity-60" : "bg-stone-900/25"}`}
                 >
                   <div className="min-w-0">
                     <div className="truncate font-medium text-stone-100">{product.name}</div>
@@ -310,7 +352,68 @@ const CatalogueAdmin: React.FC = () => {
                   </div>
                   <div className="text-sm text-stone-400">{product.category}</div>
                   <div>
-                    <div className="font-serif text-lg text-stone-100">{product.priceLabel || formatZAR(product.price)}</div>
+                    {editingPriceId === product.id ? (
+                      <form
+                        className="flex h-9 items-center gap-1.5"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void saveInlinePrice(product);
+                        }}
+                      >
+                        <label className="flex h-9 min-w-0 flex-1 items-center rounded-md border border-burgundy-600 bg-stone-950 px-2 focus-within:ring-1 focus-within:ring-burgundy-500">
+                          <span className="mr-1 text-sm text-stone-500">R</span>
+                          <input
+                            autoFocus
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            max="1000000"
+                            step="0.01"
+                            value={priceValue}
+                            onChange={(event) => setPriceValue(event.target.value)}
+                            onFocus={(event) => event.currentTarget.select()}
+                            onKeyDown={(event) => {
+                              if (event.key === "Escape") cancelPriceEdit();
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                void saveInlinePrice(product);
+                              }
+                            }}
+                            aria-label={`Price for ${product.name}`}
+                            className="min-w-0 flex-1 bg-transparent text-sm text-stone-100 outline-none"
+                          />
+                        </label>
+                        <button
+                          type="submit"
+                          disabled={busy}
+                          title="Save price"
+                          aria-label={`Save price for ${product.name}`}
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-emerald-800/70 text-emerald-300 transition-colors hover:bg-emerald-950/50 disabled:cursor-wait disabled:opacity-60"
+                        >
+                          {busy ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={cancelPriceEdit}
+                          title="Cancel price edit"
+                          aria-label={`Cancel price edit for ${product.name}`}
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-stone-700 text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-100 disabled:opacity-60"
+                        >
+                          <X size={14} />
+                        </button>
+                      </form>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => startPriceEdit(product)}
+                        title={`Edit ${product.name} price`}
+                        className="group inline-flex min-h-9 max-w-full items-center gap-2 rounded-md border border-transparent px-1 text-left transition-colors hover:border-stone-700 hover:bg-stone-900 focus-visible:border-burgundy-600 focus-visible:outline-none"
+                      >
+                        <span className="truncate font-serif text-lg text-stone-100">{product.priceLabel || formatZAR(product.price)}</span>
+                        <Pencil size={13} className="shrink-0 text-stone-600 transition-colors group-hover:text-stone-300" />
+                      </button>
+                    )}
                     <div className="text-[10px] uppercase tracking-[0.16em] text-stone-600">per {product.unit === "kg" ? "kg" : "item"}</div>
                   </div>
                   <button
