@@ -1157,7 +1157,7 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.28, ease: "easeOut", delay: Math.min(index * 0.035, 0.35) }}
         whileHover={{ y: -4 }}
-        className="group relative h-[406px] overflow-hidden rounded-[26px] border border-stone-800/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.015))] p-5 shadow-[0_22px_64px_-42px_rgba(0,0,0,0.95)] transition-all duration-300 hover:border-burgundy-700/55"
+        className="group relative h-[454px] overflow-hidden rounded-[26px] border border-stone-800/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.015))] p-5 shadow-[0_22px_64px_-42px_rgba(0,0,0,0.95)] transition-all duration-300 hover:border-burgundy-700/55"
       >
         {PRODUCT_PHOTOS_ENABLED && product.image && (
           <>
@@ -1175,27 +1175,27 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(36,83,136,0.18),transparent_32%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
         <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
 
-        <div className="relative grid h-full grid-rows-[76px_76px_80px_minmax(0,1fr)_88px]">
-          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-            <div className="min-w-0">
-              <div className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-burgundy-400">
-                {product.category}
-              </div>
+        <div className="relative grid h-full grid-rows-[84px_76px_96px_minmax(0,1fr)_104px]">
+          <div className="min-w-0">
+            <div className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.24em] text-burgundy-400">
+              {product.category}
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-3">
               <div
-                className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors duration-300 ${getStockBadgeClass(product)}`}
+                className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors duration-300 ${getStockBadgeClass(product)}`}
               >
                 {getFulfilmentTag(product)}
               </div>
-              <div className="mt-2 h-6 min-w-0 overflow-hidden">
-                {hasActiveSpecial && (
-                  <div className="inline-flex h-6 max-w-full items-center truncate whitespace-nowrap rounded-full border border-emerald-700/60 bg-emerald-950/65 px-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200">
-                    {quantitySpecial ? "Buy more, save more" : "Special price"}
-                  </div>
-                )}
+              <div className="shrink-0 whitespace-nowrap rounded-full border border-stone-700/80 bg-stone-950/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-stone-300 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.9)]">
+                {getOrderMeta(product)}
               </div>
             </div>
-            <div className="whitespace-nowrap rounded-full border border-stone-700/80 bg-stone-950/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-stone-300 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.9)]">
-              {getOrderMeta(product)}
+            <div className="mt-2 h-6 min-w-0">
+              {hasActiveSpecial && (
+                <div className="inline-flex h-6 items-center whitespace-nowrap rounded-full border border-emerald-700/60 bg-emerald-950/65 px-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200">
+                  {quantitySpecial ? "Buy more, save more" : "Special price"}
+                </div>
+              )}
             </div>
           </div>
 
@@ -1204,9 +1204,9 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
           </h4>
 
           {quantitySpecial ? (
-            <button type="button" onClick={() => setShowSpecialPricing(true)} className="mt-1 h-[4.5rem] w-full rounded-md border border-emerald-900/60 bg-emerald-950/25 px-3 py-2 text-left transition-colors hover:border-emerald-700/70 hover:bg-emerald-950/40" aria-label={`View all special prices for ${product.name}`}>
+            <button type="button" onClick={() => setShowSpecialPricing(true)} className="mt-1 h-[5.5rem] w-full rounded-md border border-emerald-900/60 bg-emerald-950/25 px-3 py-2 text-left transition-colors hover:border-emerald-700/70 hover:bg-emerald-950/40" aria-label={`View all special prices for ${product.name}`}>
               <span className="mb-1 flex items-center justify-between text-[9px] font-semibold uppercase tracking-[0.16em] text-emerald-300"><span>Price by order size</span><ArrowRight size={11} /></span>
-              {previewTiers.map((tier) => <span key={tier.id} className="flex items-center justify-between gap-3 text-[11px] leading-[17px] text-stone-300"><span className="truncate">{formatTierRange(tier, product.unit)}</span><strong className="shrink-0 text-emerald-200">{formatZAR(tier.price)}/{product.unit === "kg" ? "kg" : "item"}</strong></span>)}
+              {previewTiers.map((tier) => <span key={tier.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-[11px] leading-[17px] text-stone-300"><span>{formatTierRange(tier, product.unit)}</span><strong className="whitespace-nowrap text-emerald-200">{formatZAR(tier.price)}/{product.unit === "kg" ? "kg" : "item"}</strong></span>)}
               {sortedSpecialTiers.length > previewTiers.length && <span className="block text-[10px] leading-[17px] text-stone-500">View all {sortedSpecialTiers.length} prices</span>}
             </button>
           ) : (
@@ -1229,53 +1229,55 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
             )}
           </div>
 
-          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_92px] items-end gap-3 border-t border-stone-800/80 pt-4">
-            <div className="min-w-0 overflow-hidden">
-              {hasActiveSpecial && lowestSpecialPrice != null ? (
-                <>
-                  <div className="truncate whitespace-nowrap text-2xl font-serif leading-none text-emerald-200">
-                    {quantitySpecial ? "From " : ""}{formatZAR(lowestSpecialPrice)}<span className="ml-1 text-xs font-sans text-emerald-300">/{product.unit === "kg" ? "kg" : "item"}</span>
-                  </div>
-                  {product.price > 0 && <div className="mt-1 text-xs text-stone-500 line-through">{formatZAR(product.price)}</div>}
-                </>
-              ) : (
-                <div className="truncate whitespace-nowrap text-2xl font-serif leading-none text-stone-100">
-                  {product.priceLabel ?? formatZAR(product.price)}
-                </div>
-              )}
-              <div className="mt-2 truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-stone-500 transition-colors duration-300 group-hover:text-stone-300">
-                {hasActiveSpecial ? primarySpecial?.campaignTitle : `per ${product.unit === "kg" ? "kg" : "item"}`}
-              </div>
+          <div className="grid min-w-0 grid-rows-[32px_minmax(0,1fr)] border-t border-stone-800/80 pt-4">
+            <div className="break-words text-[10px] font-semibold uppercase leading-4 tracking-[0.2em] text-stone-500 transition-colors duration-300 group-hover:text-stone-300">
+              {hasActiveSpecial ? primarySpecial?.campaignTitle : `per ${product.unit === "kg" ? "kg" : "item"}`}
             </div>
+            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_92px] items-end gap-3">
+              <div className="min-w-0">
+                {hasActiveSpecial && lowestSpecialPrice != null ? (
+                  <>
+                    <div className={`whitespace-nowrap font-serif leading-[1.15] text-emerald-200 ${quantitySpecial ? "text-[22px]" : "text-2xl"}`}>
+                      {quantitySpecial ? "From " : ""}{formatZAR(lowestSpecialPrice)}<span className="ml-1 text-xs font-sans text-emerald-300">/{product.unit === "kg" ? "kg" : "item"}</span>
+                    </div>
+                    {product.price > 0 && <div className="mt-1 text-xs text-stone-500 line-through">{formatZAR(product.price)}</div>}
+                  </>
+                ) : (
+                  <div className="text-2xl font-serif leading-[1.15] text-stone-100">
+                    {product.priceLabel ?? formatZAR(product.price)}
+                  </div>
+                )}
+              </div>
 
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.92 }}
-              onClick={handleAdd}
-              disabled={isOutOfStock}
-              className={`inline-flex w-[92px] shrink-0 items-center justify-center gap-2 rounded-full px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] transition-all duration-200 ${
-                isOutOfStock
-                  ? "cursor-not-allowed border border-red-800/60 bg-red-950/40 text-red-100"
-                  : flash
-                  ? "bg-stone-100 text-stone-950"
-                  : "bg-burgundy-800 text-stone-100 shadow-[0_12px_28px_-16px_rgba(16,35,63,0.9)] hover:bg-burgundy-700"
-              }`}
-              aria-label={`Add ${product.name} to cart`}
-            >
-              {isOutOfStock ? (
-                <>Out</>
-              ) : flash ? (
-                <>
-                  <Check size={13} strokeWidth={2.5} />
-                  Added
-                </>
-              ) : (
-                <>
-                  <Plus size={13} strokeWidth={2.5} />
-                  Add
-                </>
-              )}
-            </motion.button>
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.92 }}
+                onClick={handleAdd}
+                disabled={isOutOfStock}
+                className={`inline-flex h-9 w-[92px] shrink-0 items-center justify-center gap-2 rounded-full px-3 text-[10px] font-semibold uppercase tracking-[0.2em] transition-all duration-200 ${
+                  isOutOfStock
+                    ? "cursor-not-allowed border border-red-800/60 bg-red-950/40 text-red-100"
+                    : flash
+                    ? "bg-stone-100 text-stone-950"
+                    : "bg-burgundy-800 text-stone-100 shadow-[0_12px_28px_-16px_rgba(16,35,63,0.9)] hover:bg-burgundy-700"
+                }`}
+                aria-label={`Add ${product.name} to cart`}
+              >
+                {isOutOfStock ? (
+                  <>Out</>
+                ) : flash ? (
+                  <>
+                    <Check size={13} strokeWidth={2.5} />
+                    Added
+                  </>
+                ) : (
+                  <>
+                    <Plus size={13} strokeWidth={2.5} />
+                    Add
+                  </>
+                )}
+              </motion.button>
+            </div>
           </div>
         </div>
       </motion.article>
