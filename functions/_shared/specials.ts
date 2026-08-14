@@ -4,6 +4,8 @@ import type {
   SpecialTier,
 } from "../../src/shared/specials";
 import { getJohannesburgDate } from "../../src/shared/specials";
+import type { Product } from "../../src/shop/products";
+import { getQuantityRules, isQuantityOnStep } from "../../src/shop/quantityRules";
 
 type CampaignRow = {
   id: string;
@@ -169,7 +171,12 @@ type ValidationResult =
 
 export const validateSpecialCampaign = (
   value: unknown,
-  options: { id: string; createdAt: string; updatedAt: string },
+  options: {
+    id: string;
+    createdAt: string;
+    updatedAt: string;
+    productsById?: Map<string, Product>;
+  },
 ): ValidationResult => {
   if (!value || typeof value !== "object") return { ok: false, error: "Invalid campaign data." };
   const input = value as Record<string, unknown>;
@@ -197,9 +204,13 @@ export const validateSpecialCampaign = (
     const productId = cleanText(item.productId, 64);
     const displayName = cleanText(item.displayName, 120);
     const pricingMode = item.pricingMode === "tiered" ? "tiered" : "fixed";
+    const product = options.productsById?.get(productId);
 
     if (!productId || productIds.has(productId)) {
       return { ok: false, error: "Each campaign product must be selected once." };
+    }
+    if (options.productsById && !product) {
+      return { ok: false, error: `${displayName || productId} is no longer in the catalogue.` };
     }
     productIds.add(productId);
 
@@ -214,6 +225,7 @@ export const validateSpecialCampaign = (
         return { ok: false, error: `Add at least one price tier for ${displayName || productId}.` };
       }
 
+      const quantityRules = product ? getQuantityRules(product) : null;
       for (let tierIndex = 0; tierIndex < item.tiers.length; tierIndex += 1) {
         const rawTier = item.tiers[tierIndex];
         if (!rawTier || typeof rawTier !== "object") return { ok: false, error: "Invalid price tier." };
@@ -222,8 +234,20 @@ export const validateSpecialCampaign = (
         const maxQty = cleanBoundary(tier.maxQty);
         const price = cleanPrice(tier.price);
 
-        if (minQty === undefined || maxQty === undefined || price == null) {
+        if (minQty == null || minQty === undefined || maxQty === undefined || price == null) {
           return { ok: false, error: `Complete every tier for ${displayName || productId}.` };
+        }
+        if (quantityRules && minQty < quantityRules.minQty) {
+          return { ok: false, error: `${displayName || productId} tiers must start at ${quantityRules.minQty} or higher.` };
+        }
+        if (quantityRules && !isQuantityOnStep(minQty, quantityRules)) {
+          return { ok: false, error: `${displayName || productId} tier minimums must follow its ${quantityRules.step} quantity step.` };
+        }
+        if (quantityRules && maxQty != null && !isQuantityOnStep(maxQty, quantityRules)) {
+          return { ok: false, error: `${displayName || productId} tier limits must follow its ${quantityRules.step} quantity step.` };
+        }
+        if (quantityRules?.maxQty != null && (minQty > quantityRules.maxQty || (maxQty != null && maxQty > quantityRules.maxQty))) {
+          return { ok: false, error: `${displayName || productId} tiers cannot exceed its maximum order quantity.` };
         }
         if (minQty != null && maxQty != null && minQty >= maxQty) {
           return { ok: false, error: `A tier maximum must be above its minimum for ${displayName || productId}.` };
@@ -281,4 +305,3 @@ export const validateSpecialCampaign = (
     },
   };
 };
-

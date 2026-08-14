@@ -30,6 +30,7 @@ import {
 import type { SpecialCampaign, SpecialOffer, SpecialTier } from "../shared/specials";
 import { getCampaignStatus, getJohannesburgDate } from "../shared/specials";
 import type { Product } from "../shop/products";
+import { getQuantityRules, isQuantityOnStep } from "../shop/quantityRules";
 import { buildSpecialsMessage, formatCampaignDate, formatSpecialMoney } from "./specialsMessage";
 
 type CatalogueResponse = { products: Product[] };
@@ -165,6 +166,7 @@ const SpecialsManager: React.FC = () => {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [copied, setCopied] = useState(false);
+  const [customDiscount, setCustomDiscount] = useState("");
   const [customTemplates, setCustomTemplates] = useState<CampaignTemplate[]>(loadCustomTemplates);
   const [presetName, setPresetName] = useState("");
   const [showPresetInput, setShowPresetInput] = useState(false);
@@ -251,10 +253,21 @@ const SpecialsManager: React.FC = () => {
         if (item.fixedPrice == null || item.fixedPrice <= 0) return `Enter a valid price for ${product?.name ?? "each offer"}.`;
       } else {
         if (!item.tiers.length) return `Add a price tier for ${product?.name ?? "each offer"}.`;
+        const rules = product ? getQuantityRules(product) : null;
         const tiers = item.tiers.slice().sort((a, b) => (a.minQty ?? -1) - (b.minQty ?? -1));
         for (let index = 0; index < tiers.length; index += 1) {
           const tier = tiers[index];
           if (tier.price <= 0) return `Complete every tier for ${product?.name ?? "the offer"}.`;
+          if (tier.minQty == null) return `Enter a starting quantity for every ${product?.name ?? "offer"} tier.`;
+          if (rules && tier.minQty < rules.minQty) {
+            return `${product?.name ?? "This product"} has a minimum order of ${rules.minQty} ${product?.unit === "kg" ? "kg" : "items"}.`;
+          }
+          if (rules && !isQuantityOnStep(tier.minQty, rules)) {
+            return `${product?.name ?? "This product"} quantities move in steps of ${rules.step}.`;
+          }
+          if (rules && tier.maxQty != null && !isQuantityOnStep(tier.maxQty, rules)) {
+            return `${product?.name ?? "This product"} tier limits must follow its ${rules.step} quantity step.`;
+          }
           if (tier.minQty != null && tier.maxQty != null && tier.minQty >= tier.maxQty) {
             return `A tier maximum must be above its minimum for ${product?.name ?? "the offer"}.`;
           }
@@ -313,7 +326,10 @@ const SpecialsManager: React.FC = () => {
 
   const setPricingMode = (item: SpecialOffer, mode: "fixed" | "tiered") => {
     const product = productById.get(item.productId);
-    const threshold = product?.unit === "each" ? 10 : 3;
+    const rules = product ? getQuantityRules(product) : { minQty: 1, step: 1 };
+    const preferredThreshold = product?.unit === "each" ? 10 : 3;
+    const thresholdSteps = Math.max(1, Math.ceil((preferredThreshold - rules.minQty) / rules.step));
+    const threshold = Number((rules.minQty + thresholdSteps * rules.step).toFixed(3));
     updateItem(item.productId, (current) => ({
       ...current,
       pricingMode: mode,
@@ -323,7 +339,7 @@ const SpecialsManager: React.FC = () => {
           ? current.tiers.length
             ? current.tiers
             : [
-                { id: makeId(), minQty: null, maxQty: threshold, price: product?.price ?? 0 },
+                { id: makeId(), minQty: rules.minQty, maxQty: threshold, price: product?.price ?? 0 },
                 { id: makeId(), minQty: threshold, maxQty: null, price: product?.price ?? 0 },
               ]
           : [],
@@ -341,15 +357,50 @@ const SpecialsManager: React.FC = () => {
     const product = productById.get(item.productId);
     updateItem(item.productId, (current) => ({
       ...current,
-      tiers: [
-        ...current.tiers,
-        { id: makeId(), minQty: null, maxQty: null, price: product?.price ?? 0 },
-      ],
+      tiers: (() => {
+        const rules = product ? getQuantityRules(product) : { minQty: 1, step: 1 };
+        const tiers = current.tiers.slice();
+        const last = tiers[tiers.length - 1];
+        const start = Number(((last?.maxQty ?? last?.minQty ?? rules.minQty) + (last?.maxQty == null && last ? rules.step : 0)).toFixed(3));
+        if (last && last.maxQty == null) tiers[tiers.length - 1] = { ...last, maxQty: start };
+        return [...tiers, { id: makeId(), minQty: start, maxQty: null, price: product?.price ?? 0 }];
+      })(),
     }));
   };
 
   const removeTier = (productId: string, tierId: string) => {
     updateItem(productId, (item) => ({ ...item, tiers: item.tiers.filter((tier) => tier.id !== tierId) }));
+  };
+
+  const applyDiscount = (percentage: number) => {
+    if (!Number.isFinite(percentage) || percentage <= 0 || percentage >= 100) {
+      setError("Enter a discount between 0 and 100%.");
+      return;
+    }
+    const eligibleIds = new Set(
+      form.items
+        .filter((item) => item.pricingMode === "fixed" && (productById.get(item.productId)?.price ?? 0) > 0)
+        .map((item) => item.productId),
+    );
+    if (!eligibleIds.size) {
+      setError("Add at least one fixed-price offer before applying a discount.");
+      return;
+    }
+    setForm((current) => ({
+      ...current,
+      items: current.items.map((item) => {
+        const product = productById.get(item.productId);
+        if (!eligibleIds.has(item.productId) || !product) return item;
+        return {
+          ...item,
+          fixedPrice: Math.round(product.price * (1 - percentage / 100) * 100) / 100,
+        };
+      }),
+      customMessage: null,
+    }));
+    setError("");
+    setCustomDiscount("");
+    setNotice(`${percentage}% discount applied to ${eligibleIds.size} fixed-price ${eligibleIds.size === 1 ? "offer" : "offers"}.`);
   };
 
   const applyTemplate = (template: CampaignTemplate) => {
@@ -558,7 +609,7 @@ const SpecialsManager: React.FC = () => {
             <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-burgundy-400">Owner tools</div>
             <h1 className="mt-2 font-serif text-3xl text-stone-100 sm:text-4xl">Campaigns that price themselves</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-500">
-              Build fixed or tiered offers, publish them to the online counter and share the same prices on WhatsApp.
+              Build fixed or quantity-based offers, publish them to the online counter and share the same prices on WhatsApp.
             </p>
           </div>
           <button type="button" onClick={newCampaign} className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-burgundy-700 px-5 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-burgundy-600">
@@ -649,30 +700,42 @@ const SpecialsManager: React.FC = () => {
 
               <section className="min-w-0" aria-labelledby="pricing-heading">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-burgundy-400">Step 3</div><h2 id="pricing-heading" className="mt-1 font-serif text-2xl text-stone-100">Set offer pricing</h2>
-                <p className="mt-2 text-xs leading-5 text-stone-500">Tier minimums are included; upper limits are not. Any intentional gap uses the normal catalogue price.</p>
+                <p className="mt-2 text-xs leading-5 text-stone-500">Quantity breaks follow each product's minimum order and quantity step. Upper limits are not included.</p>
+                {form.items.some((item) => item.pricingMode === "fixed") && (
+                  <div className="mt-4 rounded-md border border-stone-800 bg-stone-900/45 p-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div><div className="inline-flex items-center gap-2 text-xs font-semibold text-stone-200"><BadgePercent size={14} className="text-burgundy-300" /> Discount all fixed-price offers</div><div className="mt-1 text-[11px] text-stone-500">Calculates each offer from its normal catalogue price.</div></div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {[5, 10, 15, 20].map((percentage) => <button key={percentage} type="button" onClick={() => applyDiscount(percentage)} className="h-9 rounded-md border border-stone-700 px-3 text-xs font-semibold text-stone-300 hover:border-burgundy-600 hover:text-white">{percentage}%</button>)}
+                        <div className="flex h-9 overflow-hidden rounded-md border border-stone-700 bg-stone-950"><input type="number" min="0.01" max="99.99" step="0.01" value={customDiscount} onChange={(event) => setCustomDiscount(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") applyDiscount(Number(customDiscount)); }} aria-label="Custom discount percentage" className="w-20 bg-transparent px-3 text-xs text-stone-100 outline-none" placeholder="Other" /><button type="button" onClick={() => applyDiscount(Number(customDiscount))} title="Apply custom discount" className="flex w-9 items-center justify-center border-l border-stone-700 text-stone-400 hover:bg-stone-800 hover:text-white"><Check size={13} /></button></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="mt-4 space-y-3">
                   {form.items.length === 0 ? <div className="flex min-h-48 items-center justify-center rounded-md border border-dashed border-stone-800 px-5 text-sm text-stone-500">Select products to begin.</div> : form.items.map((item, index) => {
                     const product = productById.get(item.productId);
                     if (!product) return null;
+                    const quantityRules = getQuantityRules(product);
                     return (
                       <div key={item.id} className="rounded-md border border-stone-800 bg-stone-900/35 p-4">
                         <div className="flex items-start gap-3">
                           <div className="flex shrink-0 flex-col gap-1"><button type="button" disabled={index === 0} onClick={() => moveItem(index, -1)} className="flex h-7 w-7 items-center justify-center rounded border border-stone-700 text-stone-500 disabled:opacity-25"><ArrowUp size={12} /></button><button type="button" disabled={index === form.items.length - 1} onClick={() => moveItem(index, 1)} className="flex h-7 w-7 items-center justify-center rounded border border-stone-700 text-stone-500 disabled:opacity-25"><ArrowDown size={12} /></button></div>
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-3"><div><div className="font-medium text-stone-100">{product.name}</div><div className="mt-1 text-[11px] text-stone-500">Normal: {product.price > 0 ? `${formatSpecialMoney(product.price)}/${product.unit}` : product.priceLabel}</div></div><button type="button" onClick={() => toggleProduct(product)} title="Remove offer" className="flex h-8 w-8 items-center justify-center text-stone-600 hover:text-red-300"><Trash2 size={14} /></button></div>
+                            <div className="flex items-start justify-between gap-3"><div><div className="font-medium text-stone-100">{product.name}</div><div className="mt-1 text-[11px] text-stone-500">Normal: {product.price > 0 ? `${formatSpecialMoney(product.price)}/${product.unit}` : product.priceLabel} | Minimum {quantityRules.minQty} {product.unit === "kg" ? "kg" : quantityRules.minQty === 1 ? "item" : "items"} | Steps of {quantityRules.step}</div></div><button type="button" onClick={() => toggleProduct(product)} title="Remove offer" className="flex h-8 w-8 items-center justify-center text-stone-600 hover:text-red-300"><Trash2 size={14} /></button></div>
                             <label className="mt-3 block"><span className={labelClass}>Name shown in the special</span><input value={item.displayName} onChange={(event) => updateItem(item.productId, (current) => ({ ...current, displayName: event.target.value }))} className={inputClass} /></label>
-                            <div className="mt-3 inline-flex rounded-md border border-stone-700 bg-stone-950 p-1"><button type="button" onClick={() => setPricingMode(item, "fixed")} className={`h-8 rounded px-3 text-xs font-semibold ${item.pricingMode === "fixed" ? "bg-burgundy-700 text-white" : "text-stone-500"}`}>Fixed price</button><button type="button" onClick={() => setPricingMode(item, "tiered")} className={`h-8 rounded px-3 text-xs font-semibold ${item.pricingMode === "tiered" ? "bg-burgundy-700 text-white" : "text-stone-500"}`}>Tiered price</button></div>
+                            <div className="mt-3 inline-flex rounded-md border border-stone-700 bg-stone-950 p-1"><button type="button" onClick={() => setPricingMode(item, "fixed")} className={`h-8 rounded px-3 text-xs font-semibold ${item.pricingMode === "fixed" ? "bg-burgundy-700 text-white" : "text-stone-500"}`}>Fixed price</button><button type="button" onClick={() => setPricingMode(item, "tiered")} className={`h-8 rounded px-3 text-xs font-semibold ${item.pricingMode === "tiered" ? "bg-burgundy-700 text-white" : "text-stone-500"}`}>Quantity breaks</button></div>
                             {item.pricingMode === "fixed" ? (
                               <label className="relative mt-3 block max-w-xs"><span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-stone-500">R</span><input type="number" min="0.01" step="0.01" value={item.fixedPrice ?? ""} onChange={(event) => updateItem(item.productId, (current) => ({ ...current, fixedPrice: numericValue(event.target.value) }))} aria-label={`Special price for ${item.displayName}`} className={`${inputClass} pl-8`} /></label>
                             ) : (
                               <div className="mt-3 space-y-2">
-                                <div className="hidden grid-cols-[1fr_1fr_1fr_36px] gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-stone-500 sm:grid"><span>From (blank = start)</span><span>Up to, not including</span><span>Price per {product.unit}</span><span /></div>
+                                <div className="hidden grid-cols-[1fr_1fr_1fr_36px] gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-stone-500 sm:grid"><span>Starting quantity</span><span>Until (optional)</span><span>Price per {product.unit}</span><span /></div>
                                 {item.tiers.map((tier) => (
                                   <div key={tier.id} className="grid grid-cols-[1fr_1fr_1fr_36px] gap-2">
-                                    <input type="number" min="0" step="0.01" value={tier.minQty ?? ""} onChange={(event) => updateTier(item.productId, tier.id, { minQty: numericValue(event.target.value) })} aria-label={`Tier minimum for ${item.displayName}`} className={inputClass} placeholder="From" />
-                                    <input type="number" min="0" step="0.01" value={tier.maxQty ?? ""} onChange={(event) => updateTier(item.productId, tier.id, { maxQty: numericValue(event.target.value) })} aria-label={`Tier maximum for ${item.displayName}`} className={inputClass} placeholder="No limit" />
-                                    <input type="number" min="0.01" step="0.01" value={tier.price || ""} onChange={(event) => updateTier(item.productId, tier.id, { price: numericValue(event.target.value) ?? 0 })} aria-label={`Tier price for ${item.displayName}`} className={inputClass} placeholder="R" />
-                                    <button type="button" onClick={() => removeTier(item.productId, tier.id)} title="Remove tier" className="flex h-[42px] w-9 items-center justify-center rounded-md border border-stone-700 text-stone-500 hover:text-red-300"><X size={13} /></button>
+                                    <label className="min-w-0"><span className="mb-1 block text-[8px] font-semibold uppercase tracking-[0.12em] text-stone-600 sm:hidden">From</span><input type="number" min={quantityRules.minQty} step={quantityRules.step} value={tier.minQty ?? ""} onChange={(event) => updateTier(item.productId, tier.id, { minQty: numericValue(event.target.value) })} aria-label={`Tier minimum for ${item.displayName}`} className={inputClass} placeholder={`Min ${quantityRules.minQty}`} /></label>
+                                    <label className="min-w-0"><span className="mb-1 block text-[8px] font-semibold uppercase tracking-[0.12em] text-stone-600 sm:hidden">Until</span><input type="number" min={quantityRules.minQty} step={quantityRules.step} value={tier.maxQty ?? ""} onChange={(event) => updateTier(item.productId, tier.id, { maxQty: numericValue(event.target.value) })} aria-label={`Tier maximum for ${item.displayName}`} className={inputClass} placeholder="Open" /></label>
+                                    <label className="min-w-0"><span className="mb-1 block text-[8px] font-semibold uppercase tracking-[0.12em] text-stone-600 sm:hidden">Price</span><input type="number" min="0.01" step="0.01" value={tier.price || ""} onChange={(event) => updateTier(item.productId, tier.id, { price: numericValue(event.target.value) ?? 0 })} aria-label={`Tier price for ${item.displayName}`} className={inputClass} placeholder="R" /></label>
+                                    <button type="button" onClick={() => removeTier(item.productId, tier.id)} title="Remove tier" className="mt-[17px] flex h-[42px] w-9 items-center justify-center rounded-md border border-stone-700 text-stone-500 hover:text-red-300 sm:mt-0"><X size={13} /></button>
                                   </div>
                                 ))}
                                 <button type="button" onClick={() => addTier(item)} className="inline-flex h-9 items-center gap-2 text-xs font-semibold text-burgundy-300 hover:text-white"><Plus size={13} /> Add another tier</button>
@@ -692,9 +755,10 @@ const SpecialsManager: React.FC = () => {
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-b border-stone-800 pb-3"><div className="inline-flex rounded-md border border-stone-700 bg-stone-950 p-1"><button type="button" onClick={() => setMessageView("preview")} className={`inline-flex h-8 items-center gap-2 rounded px-3 text-xs font-semibold ${messageView === "preview" ? "bg-stone-800 text-white" : "text-stone-500"}`}><Clipboard size={13} /> Preview</button><button type="button" onClick={() => setMessageView("edit")} className={`inline-flex h-8 items-center gap-2 rounded px-3 text-xs font-semibold ${messageView === "edit" ? "bg-stone-800 text-white" : "text-stone-500"}`}><FileText size={13} /> Edit message</button></div>{form.customMessage != null && <button type="button" onClick={() => updateForm("customMessage", null)} className="inline-flex h-8 items-center gap-2 text-xs text-stone-400 hover:text-white"><RotateCcw size={13} /> Use generated message</button>}</div>
               {messageView === "preview" ? <div className="mt-4 rounded-md border border-stone-800 bg-[#0b141a] p-4 sm:p-5"><div className="ml-auto max-w-[94%] break-words rounded-md rounded-tr-none bg-[#005c4b] px-4 py-3 text-[13px] leading-6 text-white shadow-lg [overflow-wrap:anywhere] sm:max-w-[88%]">{message.split("\n").map((line, index) => <p key={`${line}-${index}`} className={line ? "min-h-6" : "h-3"}>{renderWhatsAppLine(line)}</p>)}</div></div> : <textarea value={message} onChange={(event) => updateForm("customMessage", event.target.value)} rows={20} aria-label="Final WhatsApp message" className={`${inputClass} mt-4 min-h-[420px] resize-y font-mono text-[13px] leading-6`} />}
               {validationError && <div className="mt-3 flex items-center gap-2 text-xs text-amber-300"><AlertCircle size={14} /> {validationError}</div>}
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                 <button type="button" disabled={saving} onClick={() => void saveCampaign(form.published)} className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-stone-700 bg-stone-900 px-4 text-xs font-bold uppercase tracking-[0.12em] text-stone-200 hover:border-stone-500 disabled:opacity-40"><Save size={15} /> {editingId ? "Save changes" : "Save draft"}</button>
                 <button type="button" disabled={saving} onClick={() => void saveCampaign(true)} className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-emerald-800 bg-emerald-950/45 px-4 text-xs font-bold uppercase tracking-[0.12em] text-emerald-200 hover:bg-emerald-950 disabled:opacity-40"><CheckCircle2 size={15} /> Publish to site</button>
+                <button type="button" disabled={Boolean(validationError)} onClick={() => openWhatsApp()} className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-[#25D366]/55 px-4 text-xs font-bold uppercase tracking-[0.12em] text-[#55df86] hover:bg-[#25D366]/10 disabled:opacity-40"><Send size={16} /> WhatsApp only <ExternalLink size={12} /></button>
                 <button type="button" disabled={saving} onClick={() => void publishAndSend()} className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#25D366] px-4 text-xs font-bold uppercase tracking-[0.12em] text-stone-950 hover:bg-[#3ee477] disabled:opacity-40"><Send size={16} /> Publish & WhatsApp <ExternalLink size={12} /></button>
                 <button type="button" onClick={() => void copyMessage()} className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-stone-700 px-4 text-xs font-bold uppercase tracking-[0.12em] text-stone-200 hover:border-stone-500">{copied ? <Check size={15} /> : <Copy size={15} />}{copied ? "Copied" : "Copy message"}</button>
               </div>

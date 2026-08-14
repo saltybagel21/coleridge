@@ -27,7 +27,7 @@ import {
 import type { Product } from "./products";
 import { useLiveProducts } from "./liveCatalogue";
 import { useCart, getQuantityRules, formatProductName, formatQty, formatZAR } from "./CartContext";
-import { getLowestSpecialPrice, getPrimarySpecial } from "../shared/specials";
+import { formatTierRange, getLowestSpecialPrice, getPrimarySpecial } from "../shared/specials";
 
 type OrderMode = "retail" | "wholesale";
 
@@ -1101,10 +1101,11 @@ const CategoryBanner: React.FC<{ category: string; count: number }> = ({ categor
   );
 };
 
-const ProductCard: React.FC<{ product: Product; index: number }> = ({ product, index }) => {
+const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string }> = ({ product, index, anchorId }) => {
   const { add, orderType } = useCart();
   const [flash, setFlash] = useState(false);
   const [showPhoto, setShowPhoto] = useState(false);
+  const [showSpecialPricing, setShowSpecialPricing] = useState(false);
   const rules = getQuantityRules(product);
   const hasPhoto = PRODUCT_PHOTOS_ENABLED && Boolean(product.image);
   const isOutOfStock = product.stockStatus === "out_of_stock";
@@ -1115,21 +1116,26 @@ const ProductCard: React.FC<{ product: Product; index: number }> = ({ product, i
       lowestSpecialPrice != null &&
       (product.price === 0 || lowestSpecialPrice < product.price),
   );
+  const quantitySpecial = primarySpecial?.pricingMode === "tiered" ? primarySpecial : null;
+  const sortedSpecialTiers = quantitySpecial?.tiers.slice().sort((a, b) => (a.minQty ?? -1) - (b.minQty ?? -1)) ?? [];
+  const previewTiers = sortedSpecialTiers.slice(0, sortedSpecialTiers.length > 3 ? 2 : 3);
 
   const handleAdd = () => {
     if (isOutOfStock) return;
     const initialQty = rules.minQty;
     add(product, orderType, initialQty);
+    setShowSpecialPricing(false);
     setFlash(true);
     window.setTimeout(() => setFlash(false), 750);
   };
 
   useEffect(() => {
-    if (!showPhoto) return;
+    if (!showPhoto && !showSpecialPricing) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setShowPhoto(false);
+        setShowSpecialPricing(false);
       }
     };
     const originalOverflow = document.body.style.overflow;
@@ -1140,17 +1146,18 @@ const ProductCard: React.FC<{ product: Product; index: number }> = ({ product, i
       document.body.style.overflow = originalOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [showPhoto]);
+  }, [showPhoto, showSpecialPricing]);
 
   return (
     <>
       <motion.article
+        id={anchorId}
         layout
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.28, ease: "easeOut", delay: Math.min(index * 0.035, 0.35) }}
         whileHover={{ y: -4 }}
-        className="group relative h-[398px] overflow-hidden rounded-[26px] border border-stone-800/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.015))] p-5 shadow-[0_22px_64px_-42px_rgba(0,0,0,0.95)] transition-all duration-300 hover:border-burgundy-700/55"
+        className="group relative h-[406px] overflow-hidden rounded-[26px] border border-stone-800/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.015))] p-5 shadow-[0_22px_64px_-42px_rgba(0,0,0,0.95)] transition-all duration-300 hover:border-burgundy-700/55"
       >
         {PRODUCT_PHOTOS_ENABLED && product.image && (
           <>
@@ -1181,7 +1188,7 @@ const ProductCard: React.FC<{ product: Product; index: number }> = ({ product, i
               </div>
               {hasActiveSpecial && (
                 <div className="mt-2 inline-flex rounded-full border border-emerald-700/60 bg-emerald-950/65 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-200">
-                  {primarySpecial?.pricingMode === "tiered" ? "Tiered special" : "Special offer"}
+                  {quantitySpecial ? "Buy more, save more" : "Special price"}
                 </div>
               )}
             </div>
@@ -1190,13 +1197,21 @@ const ProductCard: React.FC<{ product: Product; index: number }> = ({ product, i
             </div>
           </div>
 
-          <h4 className="mt-5 h-16 overflow-hidden text-2xl font-serif leading-tight text-stone-100 transition-colors duration-300 group-hover:text-white [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+          <h4 className="mt-4 h-[4.5rem] shrink-0 overflow-hidden pb-1 text-2xl font-serif leading-[1.2] text-stone-100 transition-colors duration-300 group-hover:text-white [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
             {formatProductName(product.name)}
           </h4>
 
-          <p className="mt-3 h-[4.5rem] overflow-hidden text-sm leading-6 text-stone-400 transition-colors duration-300 group-hover:text-stone-200 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
-            {getProductBlurb(product)}
-          </p>
+          {quantitySpecial ? (
+            <button type="button" onClick={() => setShowSpecialPricing(true)} className="mt-2 h-[4.5rem] w-full rounded-md border border-emerald-900/60 bg-emerald-950/25 px-3 py-2 text-left transition-colors hover:border-emerald-700/70 hover:bg-emerald-950/40" aria-label={`View all special prices for ${product.name}`}>
+              <span className="mb-1 flex items-center justify-between text-[9px] font-semibold uppercase tracking-[0.16em] text-emerald-300"><span>Price by order size</span><ArrowRight size={11} /></span>
+              {previewTiers.map((tier) => <span key={tier.id} className="flex items-center justify-between gap-3 text-[11px] leading-[17px] text-stone-300"><span className="truncate">{formatTierRange(tier, product.unit)}</span><strong className="shrink-0 text-emerald-200">{formatZAR(tier.price)}/{product.unit === "kg" ? "kg" : "item"}</strong></span>)}
+              {sortedSpecialTiers.length > previewTiers.length && <span className="block text-[10px] leading-[17px] text-stone-500">View all {sortedSpecialTiers.length} prices</span>}
+            </button>
+          ) : (
+            <p className="mt-3 h-[4.5rem] overflow-hidden text-sm leading-6 text-stone-400 transition-colors duration-300 group-hover:text-stone-200 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
+              {getProductBlurb(product)}
+            </p>
+          )}
 
           <div className={`mt-auto flex items-end ${hasActiveSpecial ? "h-8" : "h-16"}`}>
             {hasPhoto && (
@@ -1217,7 +1232,7 @@ const ProductCard: React.FC<{ product: Product; index: number }> = ({ product, i
               {hasActiveSpecial && lowestSpecialPrice != null ? (
                 <>
                   <div className="text-2xl font-serif leading-none text-emerald-200">
-                    {primarySpecial?.pricingMode === "tiered" ? "From " : ""}{formatZAR(lowestSpecialPrice)}
+                    {quantitySpecial ? "From " : ""}{formatZAR(lowestSpecialPrice)}<span className="ml-1 text-xs font-sans text-emerald-300">/{product.unit === "kg" ? "kg" : "item"}</span>
                   </div>
                   {product.price > 0 && <div className="mt-1 text-xs text-stone-500 line-through">{formatZAR(product.price)}</div>}
                 </>
@@ -1262,6 +1277,23 @@ const ProductCard: React.FC<{ product: Product; index: number }> = ({ product, i
           </div>
         </div>
       </motion.article>
+
+      <AnimatePresence>
+        {showSpecialPricing && quantitySpecial && (
+          <motion.div className="fixed inset-0 z-[96] overflow-y-auto bg-stone-950/88 px-4 py-6 backdrop-blur-md" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowSpecialPricing(false)}>
+            <div className="flex min-h-full items-center justify-center">
+              <motion.div role="dialog" aria-modal="true" aria-labelledby={`special-pricing-title-${product.id}`} className="w-full max-w-lg rounded-lg border border-emerald-900/60 bg-stone-950 p-5 shadow-2xl sm:p-7" initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.98 }} onClick={(event) => event.stopPropagation()}>
+                <div className="flex items-start justify-between gap-4"><div><div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-300">Buy more, save more</div><h3 id={`special-pricing-title-${product.id}`} className="mt-2 font-serif text-3xl text-stone-100">{formatProductName(product.name)}</h3><p className="mt-2 text-sm text-stone-500">Minimum order {formatQty(rules.minQty, product.unit)}. Your price updates automatically when your cart reaches a new quantity.</p></div><button type="button" onClick={() => setShowSpecialPricing(false)} aria-label="Close special pricing" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-stone-700 text-stone-400 hover:bg-stone-900 hover:text-white"><X size={17} /></button></div>
+                <div className="mt-6 overflow-hidden rounded-md border border-stone-800">
+                  {sortedSpecialTiers.map((tier) => <div key={tier.id} className="flex items-center justify-between gap-4 border-b border-stone-800 bg-stone-900/35 px-4 py-3 last:border-0"><span className="text-sm text-stone-300">{formatTierRange(tier, product.unit)}</span><strong className="text-base text-emerald-200">{formatZAR(tier.price)} / {product.unit === "kg" ? "kg" : "item"}</strong></div>)}
+                </div>
+                {product.price > 0 && <div className="mt-3 text-xs text-stone-500">Normal price: {formatZAR(product.price)} / {product.unit === "kg" ? "kg" : "item"}</div>}
+                <button type="button" onClick={handleAdd} disabled={isOutOfStock} className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-burgundy-700 text-xs font-bold uppercase tracking-[0.15em] text-white hover:bg-burgundy-600 disabled:opacity-40"><Plus size={15} /> Add minimum order to cart</button>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {PRODUCT_PHOTOS_ENABLED && showPhoto && product.image && (
@@ -1441,7 +1473,7 @@ export const ShopGrid: React.FC = () => {
                   {activeCampaigns.map((campaign) => campaign.title).join(" | ")}
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-stone-400">
-                  {specialProducts.length} products have active offer pricing. Tiered prices update automatically as you change the quantity in your cart.
+                  {specialProducts.length} products have active special pricing. Quantity discounts update automatically as you change the amount in your cart.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-stone-500">
                   {activeCampaigns.map((campaign) => (
@@ -1451,7 +1483,11 @@ export const ShopGrid: React.FC = () => {
               </div>
               <button
                 type="button"
-                onClick={() => { setActiveCat("Specials"); setQuery(""); }}
+                onClick={() => {
+                  setActiveCat("Specials");
+                  setQuery("");
+                  window.setTimeout(() => scrollToElementWithOffset("first-special-product", 88), 180);
+                }}
                 className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-emerald-700 px-5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white hover:bg-emerald-600"
               >
                 View specials <ArrowRight size={14} />
@@ -1593,12 +1629,12 @@ export const ShopGrid: React.FC = () => {
                 </p>
               </div>
             ) : (
-              grouped.map((group) => (
+              grouped.map((group, groupIndex) => (
                 <div key={group.category} className="mb-16 last:mb-0">
                   <CategoryBanner category={group.category} count={group.items.length} />
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                     {group.items.map((product, index) => (
-                      <ProductCard key={product.id} product={product} index={index} />
+                      <ProductCard key={product.id} product={product} index={index} anchorId={activeCat === "Specials" && groupIndex === 0 && index === 0 ? "first-special-product" : undefined} />
                     ))}
                   </div>
                 </div>

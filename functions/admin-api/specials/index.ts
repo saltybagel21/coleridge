@@ -1,4 +1,5 @@
 import { noStoreJson } from "../../_shared/http";
+import { listProducts } from "../../_shared/catalogue";
 import {
   insertSpecialCampaign,
   listSpecialCampaigns,
@@ -20,10 +21,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
     const now = new Date().toISOString();
     const body: unknown = await request.json();
+    const products = await listProducts(env.DB, true);
     const validation = validateSpecialCampaign(body, {
       id: crypto.randomUUID(),
       createdAt: now,
       updatedAt: now,
+      productsById: new Map(products.map((product) => [product.id, product])),
     });
     if ("error" in validation) return noStoreJson({ error: validation.error }, { status: 400 });
 
@@ -34,4 +37,3 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return noStoreJson({ error: "The special campaign could not be saved." }, { status: 500 });
   }
 };
-

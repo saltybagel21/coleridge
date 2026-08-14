@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
+import { formatTierRange } from "../shared/specials";
 import { useCart, getLinePricing, getQuantityRules, formatProductName, formatQty, formatZAR } from "./CartContext";
 
 const QuantityInput: React.FC<{
@@ -162,9 +163,20 @@ export const CartDrawer: React.FC = () => {
                             )}
                           </div>
                           {pricing.isSpecial && (
-                            <div className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-emerald-300">
-                              {pricing.special?.campaignTitle}{pricing.tier ? " tier applied" : " special applied"}
-                            </div>
+                            <>
+                              <div className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-emerald-300">
+                                {pricing.tier ? `Current price: ${formatTierRange(pricing.tier, line.product.unit)}` : `${pricing.special?.campaignTitle} price applied`}
+                              </div>
+                              {pricing.special?.pricingMode === "tiered" && (
+                                <div className="mb-3 overflow-hidden rounded-md border border-emerald-900/50 bg-emerald-950/20">
+                                  <div className="border-b border-emerald-900/40 px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-emerald-300">Price by order size</div>
+                                  {pricing.special.tiers.map((tier) => {
+                                    const active = pricing.tier?.id === tier.id;
+                                    return <div key={tier.id} className={`flex items-center justify-between gap-3 px-3 py-1.5 text-[11px] ${active ? "bg-emerald-900/35 text-emerald-100" : "text-stone-500"}`}><span>{formatTierRange(tier, line.product.unit)}</span><strong>{formatZAR(tier.price)}/{isKg ? "kg" : "item"}</strong></div>;
+                                  })}
+                                </div>
+                              )}
+                            </>
                           )}
                           {line.product.stockStatus === "out_of_stock" && (
                             <div className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-red-300">

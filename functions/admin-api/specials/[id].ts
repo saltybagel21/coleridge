@@ -1,4 +1,5 @@
 import { noStoreJson } from "../../_shared/http";
+import { listProducts } from "../../_shared/catalogue";
 import {
   deleteSpecialCampaign,
   getSpecialCampaign,
@@ -15,10 +16,12 @@ export const onRequestPatch: PagesFunction<Env, "id"> = async ({ request, env, p
     if (!current) return noStoreJson({ error: "Campaign not found." }, { status: 404 });
 
     const body: unknown = await request.json();
+    const products = await listProducts(env.DB, true);
     const validation = validateSpecialCampaign(body, {
       id,
       createdAt: current.createdAt,
       updatedAt: new Date().toISOString(),
+      productsById: new Map(products.map((product) => [product.id, product])),
     });
     if ("error" in validation) return noStoreJson({ error: validation.error }, { status: 400 });
 
@@ -42,4 +45,3 @@ export const onRequestDelete: PagesFunction<Env, "id"> = async ({ env, params })
     return noStoreJson({ error: "The special campaign could not be deleted." }, { status: 500 });
   }
 };
-

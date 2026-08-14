@@ -1,17 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { resolveProductPrice } from "../shared/specials";
 import type { OrderType, Product } from "./products";
+import { getQuantityRules, sanitizeProductQuantity } from "./quantityRules";
+
+export { getQuantityRules } from "./quantityRules";
 
 export interface CartLine {
   product: Product;
   qty: number;
   orderType: OrderType;
-}
-
-export interface QuantityRules {
-  minQty: number;
-  step: number;
-  maxQty?: number;
 }
 
 export const getLinePricing = (product: Product, qty: number) => {
@@ -20,60 +17,6 @@ export const getLinePricing = (product: Product, qty: number) => {
     ...resolved,
     lineTotal: resolved.unitPrice * qty,
   };
-};
-
-export const getQuantityRules = (product: Product): QuantityRules => {
-  const isKg = product.unit === "kg";
-  const note = (product.note ?? "").toLowerCase();
-
-  if (!isKg) {
-    return {
-      minQty: product.minQty ?? 1,
-      step: product.qtyStep ?? 1,
-      maxQty: product.maxQty,
-    };
-  }
-
-  const inferPackRule = () => {
-    if (/5kg/.test(note)) return { minQty: 5, step: 5 };
-    if (/2\.5kg/.test(note)) return { minQty: 2.5, step: 2.5 };
-    if (/2kg/.test(note)) return { minQty: 2, step: 2 };
-    if (/1kg bags?/.test(note)) return { minQty: 1, step: 1 };
-    if (/700g/.test(note)) return { minQty: 0.7, step: 0.1 };
-    if (/400g/.test(note)) return { minQty: 0.4, step: 0.1 };
-    if (/300g/.test(note)) return { minQty: 0.3, step: 0.1 };
-    if (/100g/.test(note)) return { minQty: 0.1, step: 0.1 };
-    return null;
-  };
-
-  const inferredPackRule = inferPackRule();
-  const inferredLooseStep =
-    /any quantity|made on order|cut size requested|single vacuum|individually wrapped|specify weight|wrapped individually/.test(note)
-      ? 0.1
-      : 0.1;
-
-  return {
-    minQty: product.minQty ?? inferredPackRule?.minQty ?? 0.5,
-    step: product.qtyStep ?? inferredPackRule?.step ?? inferredLooseStep,
-    maxQty: product.maxQty,
-  };
-};
-
-const sanitizeQty = (product: Product, qty: number) => {
-  const { minQty, step, maxQty } = getQuantityRules(product);
-
-  if (!Number.isFinite(qty)) return minQty;
-
-  const stepsFromMin = Math.round((qty - minQty) / step);
-  const snapped = minQty + Math.max(0, stepsFromMin) * step;
-  const rounded = parseFloat(snapped.toFixed(3));
-  const clampedMin = Math.max(minQty, rounded);
-
-  if (maxQty != null) {
-    return parseFloat(Math.min(maxQty, clampedMin).toFixed(3));
-  }
-
-  return clampedMin;
 };
 
 interface CartState {
@@ -131,11 +74,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (existing) {
         return prev.map(l =>
           l.product.id === p.id
-            ? { ...l, qty: sanitizeQty(p, l.qty + qty) }
+            ? { ...l, qty: sanitizeProductQuantity(p, l.qty + qty) }
             : l
         );
       }
-      return [...prev, { product: p, qty: sanitizeQty(p, qty), orderType: ot }];
+      return [...prev, { product: p, qty: sanitizeProductQuantity(p, qty), orderType: ot }];
     });
     setOpen(true);
   };
@@ -145,7 +88,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setItems(prev =>
       prev.map(l =>
         l.product.id === id
-          ? { ...l, qty: sanitizeQty(l.product, qty) }
+          ? { ...l, qty: sanitizeProductQuantity(l.product, qty) }
           : l
       )
     );
@@ -163,7 +106,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       current.flatMap((line) => {
         const product = latest.get(line.product.id);
         if (!product) return [];
-        return [{ ...line, product, qty: sanitizeQty(product, line.qty) }];
+        return [{ ...line, product, qty: sanitizeProductQuantity(product, line.qty) }];
       }),
     );
   }, []);
