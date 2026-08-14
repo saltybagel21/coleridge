@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, CheckCircle2, MessageCircle, Loader2 } from "lucide-react";
-import { useCart, formatProductName, formatQty, formatZAR } from "./CartContext";
+import { useCart, getLinePricing, formatProductName, formatQty, formatZAR } from "./CartContext";
 
 const BUSINESS_WHATSAPP_NUMBER = "27611275756";
 const DELIVERY_MINIMUM = 300;
@@ -69,10 +69,11 @@ export const CheckoutModal: React.FC = () => {
 
   const buildOrderSummary = () => {
     const lines = items
-      .map(
-        (line) =>
-          `- *${formatProductName(line.product.name)}* - ${formatQty(line.qty, line.product.unit)} @ ${line.product.priceLabel ?? formatZAR(line.product.price)} = ${line.product.price === 0 && line.product.priceLabel ? "To confirm" : formatZAR(line.product.price * line.qty)}`
-      )
+      .map((line) => {
+        const pricing = getLinePricing(line.product, line.qty);
+        const special = pricing.isSpecial ? ` _(${pricing.special?.campaignTitle || "Special"})_` : "";
+        return `- *${formatProductName(line.product.name)}* - ${formatQty(line.qty, line.product.unit)} @ ${pricing.unitPrice === 0 && line.product.priceLabel ? line.product.priceLabel : formatZAR(pricing.unitPrice)} = ${pricing.unitPrice === 0 && line.product.priceLabel ? "To confirm" : formatZAR(pricing.lineTotal)}${special}`;
+      })
       .join("\n");
 
     const detailLines = [
@@ -348,16 +349,20 @@ _No payment is taken online. Please confirm this order and we will finalize the 
                         Order summary
                       </div>
                       <ul className="space-y-1.5 text-sm">
-                        {items.map((line) => (
+                        {items.map((line) => {
+                          const pricing = getLinePricing(line.product, line.qty);
+                          return (
                           <li key={line.product.id} className="flex justify-between gap-3 text-stone-300">
                             <span className="truncate">
                               {formatQty(line.qty, line.product.unit)} - {formatProductName(line.product.name)}
+                              {pricing.isSpecial && <span className="ml-2 text-[10px] uppercase tracking-wider text-emerald-300">Special</span>}
                             </span>
                             <span className="shrink-0 text-stone-400">
-                              {formatZAR(line.product.price * line.qty)}
+                              {formatZAR(pricing.lineTotal)}
                             </span>
                           </li>
-                        ))}
+                          );
+                        })}
                       </ul>
                       <div className="mt-4 flex items-baseline justify-between border-t border-stone-800 pt-4">
                         <span className="text-xs uppercase tracking-widest text-stone-400">Total</span>

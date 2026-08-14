@@ -1,3 +1,5 @@
+import type { ActiveProductSpecial } from "../shared/specials";
+
 // Public catalogue sourced from Final Pricelist Wholesale.pdf (August 2026).
 // Only the final customer-facing price from the document is used.
 
@@ -20,6 +22,7 @@ export interface Product {
   enabled?: boolean;
   sortOrder?: number;
   image?: string;
+  specials?: ActiveProductSpecial[];
 }
 
 const available = (product: Omit<Product, "stockStatus" | "enabled">): Product => ({

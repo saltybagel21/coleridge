@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
-import { useCart, getQuantityRules, formatProductName, formatQty, formatZAR } from "./CartContext";
+import { useCart, getLinePricing, getQuantityRules, formatProductName, formatQty, formatZAR } from "./CartContext";
 
 const QuantityInput: React.FC<{
   id: string;
@@ -124,6 +124,7 @@ export const CartDrawer: React.FC = () => {
                   {items.map((line) => {
                     const isKg = line.product.unit === "kg";
                     const { step, minQty, maxQty } = getQuantityRules(line.product);
+                    const pricing = getLinePricing(line.product, line.qty);
 
                     const decrement = () => {
                       const next = parseFloat((line.qty - step).toFixed(3));
@@ -146,13 +147,25 @@ export const CartDrawer: React.FC = () => {
                             {formatProductName(line.product.name)}
                           </h4>
                           <div className="mb-3 text-xs text-stone-500">
-                            {line.product.priceLabel ?? formatZAR(line.product.price)} / {isKg ? "kg" : "item"}
+                            {pricing.isSpecial ? (
+                              <>
+                                <span className="font-semibold text-emerald-300">{formatZAR(pricing.unitPrice)} / {isKg ? "kg" : "item"}</span>
+                                {pricing.regularPrice > 0 && <span className="ml-2 line-through">{formatZAR(pricing.regularPrice)}</span>}
+                              </>
+                            ) : (
+                              <>{line.product.priceLabel ?? formatZAR(line.product.price)} / {isKg ? "kg" : "item"}</>
+                            )}
                             {maxQty && (
                               <span className="ml-1">
                                 ({formatQty(minQty, "kg")} - {formatQty(maxQty, "kg")})
                               </span>
                             )}
                           </div>
+                          {pricing.isSpecial && (
+                            <div className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-emerald-300">
+                              {pricing.special?.campaignTitle}{pricing.tier ? " tier applied" : " special applied"}
+                            </div>
+                          )}
                           {line.product.stockStatus === "out_of_stock" && (
                             <div className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-red-300">
                               Out of stock - remove before checkout
@@ -197,9 +210,9 @@ export const CartDrawer: React.FC = () => {
                           </div>
                         </div>
                         <div className="w-24 shrink-0 text-right font-serif text-stone-100">
-                          {line.product.price === 0 && line.product.priceLabel
+                          {pricing.unitPrice === 0 && line.product.priceLabel
                             ? "To confirm"
-                            : formatZAR(line.product.price * line.qty)}
+                            : formatZAR(pricing.lineTotal)}
                         </div>
                       </li>
                     );

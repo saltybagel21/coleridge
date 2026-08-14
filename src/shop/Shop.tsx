@@ -27,6 +27,7 @@ import {
 import type { Product } from "./products";
 import { useLiveProducts } from "./liveCatalogue";
 import { useCart, getQuantityRules, formatProductName, formatQty, formatZAR } from "./CartContext";
+import { getLowestSpecialPrice, getPrimarySpecial } from "../shared/specials";
 
 type OrderMode = "retail" | "wholesale";
 
@@ -34,6 +35,14 @@ type ShopFocusTarget = {
   orderType?: OrderMode;
   category?: string;
   query?: string;
+};
+
+const formatCampaignDateForShop = (value: string) => {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+  });
 };
 
 const SHOP_FOCUS_STORAGE = "coleridge-shop-focus-v1";
@@ -1099,6 +1108,13 @@ const ProductCard: React.FC<{ product: Product; index: number }> = ({ product, i
   const rules = getQuantityRules(product);
   const hasPhoto = PRODUCT_PHOTOS_ENABLED && Boolean(product.image);
   const isOutOfStock = product.stockStatus === "out_of_stock";
+  const primarySpecial = getPrimarySpecial(product);
+  const lowestSpecialPrice = getLowestSpecialPrice(product);
+  const hasActiveSpecial = Boolean(
+    primarySpecial &&
+      lowestSpecialPrice != null &&
+      (product.price === 0 || lowestSpecialPrice < product.price),
+  );
 
   const handleAdd = () => {
     if (isOutOfStock) return;
@@ -1163,6 +1179,11 @@ const ProductCard: React.FC<{ product: Product; index: number }> = ({ product, i
               >
                 {getFulfilmentTag(product)}
               </div>
+              {hasActiveSpecial && (
+                <div className="mt-2 inline-flex rounded-full border border-emerald-700/60 bg-emerald-950/65 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-200">
+                  {primarySpecial?.pricingMode === "tiered" ? "Tiered special" : "Special offer"}
+                </div>
+              )}
             </div>
             <div className="rounded-full border border-stone-700/80 bg-stone-950/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-stone-300 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.9)]">
               {getOrderMeta(product)}
@@ -1177,7 +1198,7 @@ const ProductCard: React.FC<{ product: Product; index: number }> = ({ product, i
             {getProductBlurb(product)}
           </p>
 
-          <div className="mt-auto flex h-16 items-end">
+          <div className={`mt-auto flex items-end ${hasActiveSpecial ? "h-8" : "h-16"}`}>
             {hasPhoto && (
               <button
                 type="button"
@@ -1193,11 +1214,20 @@ const ProductCard: React.FC<{ product: Product; index: number }> = ({ product, i
 
           <div className="mt-6 flex items-end justify-between gap-4 border-t border-stone-800/80 pt-5">
             <div>
-              <div className="text-2xl font-serif leading-none text-stone-100">
-                {product.priceLabel ?? formatZAR(product.price)}
-              </div>
-              <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-stone-500 transition-colors duration-300 group-hover:text-stone-300">
-                per {product.unit === "kg" ? "kg" : "item"}
+              {hasActiveSpecial && lowestSpecialPrice != null ? (
+                <>
+                  <div className="text-2xl font-serif leading-none text-emerald-200">
+                    {primarySpecial?.pricingMode === "tiered" ? "From " : ""}{formatZAR(lowestSpecialPrice)}
+                  </div>
+                  {product.price > 0 && <div className="mt-1 text-xs text-stone-500 line-through">{formatZAR(product.price)}</div>}
+                </>
+              ) : (
+                <div className="text-2xl font-serif leading-none text-stone-100">
+                  {product.priceLabel ?? formatZAR(product.price)}
+                </div>
+              )}
+              <div className="mt-2 max-w-[170px] truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-stone-500 transition-colors duration-300 group-hover:text-stone-300">
+                {hasActiveSpecial ? primarySpecial?.campaignTitle : `per ${product.unit === "kg" ? "kg" : "item"}`}
               </div>
             </div>
 
@@ -1316,8 +1346,29 @@ const ProductCard: React.FC<{ product: Product; index: number }> = ({ product, i
 export const ShopGrid: React.FC = () => {
   const { openCart, count, setOrderType, syncProducts } = useCart();
   const [query, setQuery] = useState("");
-  const [activeCat, setActiveCat] = useState<string>("All");
+  const [activeCat, setActiveCat] = useState<string>(() =>
+    new URLSearchParams(window.location.search).get("view") === "specials" ? "Specials" : "All",
+  );
   const products = useLiveProducts(PUBLIC_PRODUCTS, "retail");
+  const specialProducts = useMemo(
+    () => products.filter((product) => (product.specials?.length ?? 0) > 0),
+    [products],
+  );
+  const activeCampaigns = useMemo(() => {
+    const campaigns = new Map<string, { id: string; title: string; endDate: string; offers: number }>();
+    specialProducts.forEach((product) => {
+      product.specials?.forEach((special) => {
+        const current = campaigns.get(special.campaignId);
+        campaigns.set(special.campaignId, {
+          id: special.campaignId,
+          title: special.campaignTitle,
+          endDate: special.endDate,
+          offers: (current?.offers ?? 0) + 1,
+        });
+      });
+    });
+    return Array.from(campaigns.values());
+  }, [specialProducts]);
   const order = useMemo(() => {
     const liveCategories = Array.from(new Set<string>(products.map((product) => product.category)));
     return [
@@ -1334,7 +1385,8 @@ export const ShopGrid: React.FC = () => {
     const lower = query.trim().toLowerCase();
     return products.filter(
       (product) =>
-        (activeCat === "All" || product.category === activeCat) &&
+        (activeCat === "All" ||
+          (activeCat === "Specials" ? (product.specials?.length ?? 0) > 0 : product.category === activeCat)) &&
         (!lower ||
           product.name.toLowerCase().includes(lower) ||
           product.category.toLowerCase().includes(lower) ||
@@ -1378,6 +1430,35 @@ export const ShopGrid: React.FC = () => {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(36,83,136,0.18),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.04),transparent_28%)]" />
 
       <div className="relative mx-auto max-w-7xl px-6">
+        {activeCampaigns.length > 0 && (
+          <div className="mb-12 border-y border-emerald-900/60 bg-emerald-950/20 py-6">
+            <div className="flex flex-col gap-5 px-1 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-3xl">
+                <div className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.26em] text-emerald-300">
+                  <Sparkles size={14} /> Specials live now
+                </div>
+                <h3 className="mt-2 font-serif text-3xl text-stone-100">
+                  {activeCampaigns.map((campaign) => campaign.title).join(" | ")}
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-stone-400">
+                  {specialProducts.length} products have active offer pricing. Tiered prices update automatically as you change the quantity in your cart.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-stone-500">
+                  {activeCampaigns.map((campaign) => (
+                    <span key={campaign.id}>{campaign.offers} offers, ending {formatCampaignDateForShop(campaign.endDate)}</span>
+                  ))}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setActiveCat("Specials"); setQuery(""); }}
+                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-emerald-700 px-5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white hover:bg-emerald-600"
+              >
+                View specials <ArrowRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
         <div className="grid gap-8 xl:grid-cols-[1.2fr_0.88fr] xl:items-end">
           <div className="text-center">
             <div className="mb-4 flex items-center justify-center gap-3">
@@ -1470,7 +1551,7 @@ export const ShopGrid: React.FC = () => {
 
         <div className="mt-10 overflow-x-auto pb-2 [scrollbar-width:none]">
           <div className="flex min-w-max gap-2">
-            {["All", ...order].map((category) => {
+            {["All", ...(specialProducts.length ? ["Specials"] : []), ...order].map((category) => {
               const active = activeCat === category;
 
               return (

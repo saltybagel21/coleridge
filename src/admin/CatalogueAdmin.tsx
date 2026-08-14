@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  FileDown,
   Loader2,
   LogOut,
   Megaphone,
@@ -227,6 +228,13 @@ const CatalogueAdmin: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <a
+              href="/admin/price-list/"
+              title="Create a customer price list"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-stone-700 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-stone-300 transition-colors hover:bg-stone-900 hover:text-stone-100"
+            >
+              <FileDown size={16} /> <span className="hidden lg:inline">Price list</span>
+            </a>
             <a
               href="/admin/specials/"
               title="WhatsApp specials builder"

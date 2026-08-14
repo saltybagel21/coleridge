@@ -5,7 +5,7 @@ type CatalogueResponse = {
   products: Product[];
 };
 
-const REFRESH_MS = 60_000;
+const REFRESH_MS = 15_000;
 
 const isCatalogueResponse = (value: unknown): value is CatalogueResponse => {
   if (!value || typeof value !== "object") return false;

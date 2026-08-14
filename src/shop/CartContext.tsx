@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { resolveProductPrice } from "../shared/specials";
 import type { OrderType, Product } from "./products";
 
 export interface CartLine {
@@ -12,6 +13,14 @@ export interface QuantityRules {
   step: number;
   maxQty?: number;
 }
+
+export const getLinePricing = (product: Product, qty: number) => {
+  const resolved = resolveProductPrice(product, qty);
+  return {
+    ...resolved,
+    lineTotal: resolved.unitPrice * qty,
+  };
+};
 
 export const getQuantityRules = (product: Product): QuantityRules => {
   const isKg = product.unit === "kg";
@@ -162,7 +171,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clear = () => setItems([]);
 
   const subtotal = useMemo(
-    () => items.reduce((s, l) => s + l.product.price * l.qty, 0),
+    () => items.reduce((sum, line) => sum + getLinePricing(line.product, line.qty).lineTotal, 0),
     [items]
   );
   const count = useMemo(() => items.length, [items]);

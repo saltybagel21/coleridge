@@ -26,6 +26,7 @@ import { CheckoutModal } from './shop/CheckoutModal';
 
 const CatalogueAdmin = lazy(() => import('./admin/CatalogueAdmin'));
 const SpecialsBuilder = lazy(() => import('./admin/SpecialsBuilder'));
+const PriceListGenerator = lazy(() => import('./admin/PriceListGenerator'));
 
 // ============================================================================
 // BUSINESS INFO CONFIGURATION
@@ -1825,9 +1826,10 @@ const Footer = () => {
 
 // Hidden admin route — not linked from public nav
 function App() {
-  const [adminRoute] = useState<"catalogue" | "specials" | null>(() => {
+  const [adminRoute] = useState<"catalogue" | "specials" | "price-list" | null>(() => {
     const path = window.location.pathname.replace(/\/+$/, "") || "/";
     if (path === "/admin/specials") return "specials";
+    if (path === "/admin/price-list") return "price-list";
     if (path === "/admin") return "catalogue";
     return null;
   });
@@ -1908,13 +1910,13 @@ function App() {
                 Coleridge Meat
               </div>
               <h1 className="mt-4 font-serif text-4xl text-stone-100">
-                {adminRoute === "specials" ? "Loading specials builder..." : "Loading catalogue manager..."}
+                {adminRoute === "specials" ? "Loading specials manager..." : adminRoute === "price-list" ? "Loading price-list studio..." : "Loading catalogue manager..."}
               </h1>
             </div>
           </div>
         }
       >
-        {adminRoute === "specials" ? <SpecialsBuilder /> : <CatalogueAdmin />}
+        {adminRoute === "specials" ? <SpecialsBuilder /> : adminRoute === "price-list" ? <PriceListGenerator /> : <CatalogueAdmin />}
       </Suspense>
     );
   }

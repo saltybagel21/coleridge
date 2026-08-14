@@ -10,7 +10,8 @@
     "DOM.Iterable"
     ],
     "types": [
-      "@cloudflare/workers-types"
+      "@cloudflare/workers-types",
+      "vite/client"
     ],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
@@ -25,5 +26,6 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": ["legacy"]
 }
