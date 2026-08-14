@@ -1175,10 +1175,10 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(36,83,136,0.18),transparent_32%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
         <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
 
-        <div className="relative flex h-full flex-col">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-burgundy-400">
+        <div className="relative grid h-full grid-rows-[76px_76px_80px_minmax(0,1fr)_88px]">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+            <div className="min-w-0">
+              <div className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-burgundy-400">
                 {product.category}
               </div>
               <div
@@ -1186,34 +1186,36 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
               >
                 {getFulfilmentTag(product)}
               </div>
-              {hasActiveSpecial && (
-                <div className="mt-2 inline-flex rounded-full border border-emerald-700/60 bg-emerald-950/65 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-200">
-                  {quantitySpecial ? "Buy more, save more" : "Special price"}
-                </div>
-              )}
+              <div className="mt-2 h-6 min-w-0 overflow-hidden">
+                {hasActiveSpecial && (
+                  <div className="inline-flex h-6 max-w-full items-center truncate whitespace-nowrap rounded-full border border-emerald-700/60 bg-emerald-950/65 px-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200">
+                    {quantitySpecial ? "Buy more, save more" : "Special price"}
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="rounded-full border border-stone-700/80 bg-stone-950/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-stone-300 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.9)]">
+            <div className="whitespace-nowrap rounded-full border border-stone-700/80 bg-stone-950/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-stone-300 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.9)]">
               {getOrderMeta(product)}
             </div>
           </div>
 
-          <h4 className="mt-4 h-[4.5rem] shrink-0 overflow-hidden pb-1 text-2xl font-serif leading-[1.2] text-stone-100 transition-colors duration-300 group-hover:text-white [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+          <h4 className="h-full overflow-hidden pb-1 pt-3 text-2xl font-serif leading-[1.2] text-stone-100 transition-colors duration-300 group-hover:text-white [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
             {formatProductName(product.name)}
           </h4>
 
           {quantitySpecial ? (
-            <button type="button" onClick={() => setShowSpecialPricing(true)} className="mt-2 h-[4.5rem] w-full rounded-md border border-emerald-900/60 bg-emerald-950/25 px-3 py-2 text-left transition-colors hover:border-emerald-700/70 hover:bg-emerald-950/40" aria-label={`View all special prices for ${product.name}`}>
+            <button type="button" onClick={() => setShowSpecialPricing(true)} className="mt-1 h-[4.5rem] w-full rounded-md border border-emerald-900/60 bg-emerald-950/25 px-3 py-2 text-left transition-colors hover:border-emerald-700/70 hover:bg-emerald-950/40" aria-label={`View all special prices for ${product.name}`}>
               <span className="mb-1 flex items-center justify-between text-[9px] font-semibold uppercase tracking-[0.16em] text-emerald-300"><span>Price by order size</span><ArrowRight size={11} /></span>
               {previewTiers.map((tier) => <span key={tier.id} className="flex items-center justify-between gap-3 text-[11px] leading-[17px] text-stone-300"><span className="truncate">{formatTierRange(tier, product.unit)}</span><strong className="shrink-0 text-emerald-200">{formatZAR(tier.price)}/{product.unit === "kg" ? "kg" : "item"}</strong></span>)}
               {sortedSpecialTiers.length > previewTiers.length && <span className="block text-[10px] leading-[17px] text-stone-500">View all {sortedSpecialTiers.length} prices</span>}
             </button>
           ) : (
-            <p className="mt-3 h-[4.5rem] overflow-hidden text-sm leading-6 text-stone-400 transition-colors duration-300 group-hover:text-stone-200 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
+            <p className="h-full overflow-hidden pt-2 text-sm leading-6 text-stone-400 transition-colors duration-300 group-hover:text-stone-200 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
               {getProductBlurb(product)}
             </p>
           )}
 
-          <div className={`mt-auto flex items-end ${hasActiveSpecial ? "h-8" : "h-16"}`}>
+          <div className="flex min-h-0 items-end">
             {hasPhoto && (
               <button
                 type="button"
@@ -1227,21 +1229,21 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
             )}
           </div>
 
-          <div className="mt-6 flex items-end justify-between gap-4 border-t border-stone-800/80 pt-5">
-            <div>
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_92px] items-end gap-3 border-t border-stone-800/80 pt-4">
+            <div className="min-w-0 overflow-hidden">
               {hasActiveSpecial && lowestSpecialPrice != null ? (
                 <>
-                  <div className="text-2xl font-serif leading-none text-emerald-200">
+                  <div className="truncate whitespace-nowrap text-2xl font-serif leading-none text-emerald-200">
                     {quantitySpecial ? "From " : ""}{formatZAR(lowestSpecialPrice)}<span className="ml-1 text-xs font-sans text-emerald-300">/{product.unit === "kg" ? "kg" : "item"}</span>
                   </div>
                   {product.price > 0 && <div className="mt-1 text-xs text-stone-500 line-through">{formatZAR(product.price)}</div>}
                 </>
               ) : (
-                <div className="text-2xl font-serif leading-none text-stone-100">
+                <div className="truncate whitespace-nowrap text-2xl font-serif leading-none text-stone-100">
                   {product.priceLabel ?? formatZAR(product.price)}
                 </div>
               )}
-              <div className="mt-2 max-w-[170px] truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-stone-500 transition-colors duration-300 group-hover:text-stone-300">
+              <div className="mt-2 truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-stone-500 transition-colors duration-300 group-hover:text-stone-300">
                 {hasActiveSpecial ? primarySpecial?.campaignTitle : `per ${product.unit === "kg" ? "kg" : "item"}`}
               </div>
             </div>
@@ -1251,7 +1253,7 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
               whileTap={{ scale: 0.92 }}
               onClick={handleAdd}
               disabled={isOutOfStock}
-              className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.24em] transition-all duration-200 ${
+              className={`inline-flex w-[92px] shrink-0 items-center justify-center gap-2 rounded-full px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] transition-all duration-200 ${
                 isOutOfStock
                   ? "cursor-not-allowed border border-red-800/60 bg-red-950/40 text-red-100"
                   : flash
