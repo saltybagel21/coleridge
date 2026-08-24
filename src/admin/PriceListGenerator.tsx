@@ -61,6 +61,8 @@ const buildWhatsAppPriceList = (
   products: Product[],
   includeNotes: boolean,
   includeSpecials: boolean,
+  validFrom: string,
+  validUntil: string,
 ) => {
   const groups = new Map<string, Product[]>();
   products.forEach((product) => {
@@ -71,6 +73,7 @@ const buildWhatsAppPriceList = (
 
   const lines = [
     `*${title.trim() || "Coleridge Meat Price List"}*`,
+    `_Valid ${formatValidityPeriod(validFrom, validUntil)}_`,
     `_Prices updated ${new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}_`,
   ];
 
@@ -100,13 +103,48 @@ const imageToDataUrl = async (url: string) => {
   const response = await fetch(url);
   if (!response.ok) throw new Error("Logo could not be loaded.");
   const blob = await response.blob();
-  return await new Promise<string>((resolve, reject) => {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(blob);
   });
+
+  const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    image.onerror = () => reject(new Error("Logo dimensions could not be read."));
+    image.src = dataUrl;
+  });
+
+  return { dataUrl, ...dimensions };
 };
+
+const toDateInput = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const addDays = (date: Date, days: number) => {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+};
+
+const formatValidityDate = (value: string) => {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return "";
+  return new Date(year, month - 1, day).toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const formatValidityPeriod = (validFrom: string, validUntil: string) =>
+  `from ${formatValidityDate(validFrom)} until ${formatValidityDate(validUntil)}`;
 
 const PriceListGenerator: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -115,6 +153,8 @@ const PriceListGenerator: React.FC = () => {
   const [inStockOnly, setInStockOnly] = useState(false);
   const [includeNotes, setIncludeNotes] = useState(false);
   const [includeSpecials, setIncludeSpecials] = useState(true);
+  const [validFrom, setValidFrom] = useState(() => toDateInput(new Date()));
+  const [validUntil, setValidUntil] = useState(() => toDateInput(addDays(new Date(), 30)));
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -168,9 +208,15 @@ const PriceListGenerator: React.FC = () => {
   );
 
   const message = useMemo(
-    () => buildWhatsAppPriceList(title, includedProducts, includeNotes, includeSpecials),
-    [title, includedProducts, includeNotes, includeSpecials],
+    () => buildWhatsAppPriceList(title, includedProducts, includeNotes, includeSpecials, validFrom, validUntil),
+    [title, includedProducts, includeNotes, includeSpecials, validFrom, validUntil],
   );
+
+  const validityError = useMemo(() => {
+    if (!validFrom || !validUntil) return "Choose both validity dates.";
+    if (validUntil < validFrom) return "The valid-until date must be on or after the valid-from date.";
+    return "";
+  }, [validFrom, validUntil]);
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((current) => {
@@ -186,6 +232,10 @@ const PriceListGenerator: React.FC = () => {
       setError("Select at least one category before creating the price list.");
       return;
     }
+    if (validityError) {
+      setError(validityError);
+      return;
+    }
     setGenerating(true);
     setError("");
     try {
@@ -195,22 +245,32 @@ const PriceListGenerator: React.FC = () => {
       ]);
       const doc = new jsPDF({ unit: "mm", format: "a4" });
       const logo = await imageToDataUrl("/logo.jpg").catch(() => null);
-      if (logo) doc.addImage(logo, "JPEG", 14, 12, 24, 24);
+      let headerX = 14;
+      if (logo) {
+        const scale = Math.min(26 / logo.width, 22 / logo.height);
+        const logoWidth = logo.width * scale;
+        const logoHeight = logo.height * scale;
+        doc.addImage(logo.dataUrl, "JPEG", 14, 12 + (22 - logoHeight) / 2, logoWidth, logoHeight);
+        headerX += logoWidth + 7;
+      }
 
       doc.setTextColor(26, 22, 20);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(19);
-      doc.text(title.trim() || "Coleridge Meat Price List", logo ? 44 : 14, 20);
+      doc.text(title.trim() || "Coleridge Meat Price List", headerX, 20);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(95, 88, 82);
-      doc.text("18 Tennant Road, Cloetesville, Stellenbosch | 061 127 5756", logo ? 44 : 14, 27);
-      doc.text(`Updated ${new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}`, logo ? 44 : 14, 32);
+      doc.text("18 Tennant Road, Cloetesville, Stellenbosch | 061 127 5756", headerX, 27);
+      doc.text(`Updated ${new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}`, headerX, 32);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(115, 37, 55);
+      doc.text(`Valid ${formatValidityPeriod(validFrom, validUntil)}`, headerX, 37);
       doc.setDrawColor(115, 37, 55);
       doc.setLineWidth(0.6);
-      doc.line(14, 40, 196, 40);
+      doc.line(14, 43, 196, 43);
 
-      let startY = 46;
+      let startY = 49;
       categories.filter((category) => selectedCategories.has(category)).forEach((category) => {
         const items = includedProducts.filter((product) => product.category === category);
         if (!items.length) return;
@@ -291,17 +351,22 @@ const PriceListGenerator: React.FC = () => {
             <section>
               <h2 className="font-serif text-2xl text-stone-100">Price-list settings</h2>
               <label className="mt-5 block"><span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-400">Document title</span><input value={title} onChange={(event) => setTitle(event.target.value)} className={inputClass} /></label>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <label><span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-400">Valid from</span><input type="date" value={validFrom} onChange={(event) => setValidFrom(event.target.value)} className={inputClass} /></label>
+                <label><span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-400">Valid until</span><input type="date" min={validFrom} value={validUntil} onChange={(event) => setValidUntil(event.target.value)} className={inputClass} /></label>
+              </div>
+              {validityError && <div className="mt-2 flex items-center gap-2 text-xs text-red-300"><AlertCircle size={14} /> {validityError}</div>}
               <div className="mt-5 space-y-3 border-y border-stone-800 py-4">
                 <label className="flex items-center gap-3 text-sm text-stone-300"><input type="checkbox" checked={inStockOnly} onChange={(event) => setInStockOnly(event.target.checked)} className="h-4 w-4 accent-burgundy-600" /> Only include products currently in stock</label>
                 <label className="flex items-center gap-3 text-sm text-stone-300"><input type="checkbox" checked={includeNotes} onChange={(event) => setIncludeNotes(event.target.checked)} className="h-4 w-4 accent-burgundy-600" /> Include product descriptions</label>
                 <label className="flex items-center gap-3 text-sm text-stone-300"><input type="checkbox" checked={includeSpecials} onChange={(event) => setIncludeSpecials(event.target.checked)} className="h-4 w-4 accent-burgundy-600" /> Include active website specials</label>
               </div>
               <div className="mt-5"><div className="flex items-center justify-between gap-3"><div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-400">Categories</div><button type="button" onClick={() => setSelectedCategories(selectedCategories.size === categories.length ? new Set() : new Set(categories))} className="text-xs text-burgundy-300 hover:text-white">{selectedCategories.size === categories.length ? "Clear all" : "Select all"}</button></div><div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">{categories.map((category) => <label key={category} className="flex items-center gap-3 rounded-md border border-stone-800 px-3 py-2.5 text-xs text-stone-300"><input type="checkbox" checked={selectedCategories.has(category)} onChange={() => toggleCategory(category)} className="h-4 w-4 accent-burgundy-600" /><span className="min-w-0 truncate">{category}</span></label>)}</div></div>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2"><button type="button" disabled={generating || !includedProducts.length} onClick={() => void downloadPdf()} className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-burgundy-700 px-4 text-xs font-bold uppercase tracking-[0.13em] text-white hover:bg-burgundy-600 disabled:opacity-40">{generating ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} Download PDF</button><button type="button" disabled={!includedProducts.length} onClick={openWhatsApp} className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#25D366] px-4 text-xs font-bold uppercase tracking-[0.13em] text-stone-950 hover:bg-[#3ee477] disabled:opacity-40"><MessageCircle size={16} /> Open WhatsApp <ExternalLink size={12} /></button></div>
-              <button type="button" disabled={!includedProducts.length} onClick={() => void copyMessage()} className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-stone-700 text-xs font-bold uppercase tracking-[0.13em] text-stone-200 hover:border-stone-500 disabled:opacity-40">{copied ? <Check size={15} /> : <Copy size={15} />}{copied ? "Copied" : "Copy text price list"}</button>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2"><button type="button" disabled={generating || !includedProducts.length || Boolean(validityError)} onClick={() => void downloadPdf()} className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-burgundy-700 px-4 text-xs font-bold uppercase tracking-[0.13em] text-white hover:bg-burgundy-600 disabled:opacity-40">{generating ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} Download PDF</button><button type="button" disabled={!includedProducts.length || Boolean(validityError)} onClick={openWhatsApp} className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#25D366] px-4 text-xs font-bold uppercase tracking-[0.13em] text-stone-950 hover:bg-[#3ee477] disabled:opacity-40"><MessageCircle size={16} /> Open WhatsApp <ExternalLink size={12} /></button></div>
+              <button type="button" disabled={!includedProducts.length || Boolean(validityError)} onClick={() => void copyMessage()} className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-stone-700 text-xs font-bold uppercase tracking-[0.13em] text-stone-200 hover:border-stone-500 disabled:opacity-40">{copied ? <Check size={15} /> : <Copy size={15} />}{copied ? "Copied" : "Copy text price list"}</button>
             </section>
 
-            <section className="min-w-0"><div className="flex items-end justify-between gap-4"><div><div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-burgundy-400">Live preview</div><h2 className="mt-1 font-serif text-2xl text-stone-100">{includedProducts.length} products</h2></div><div className="text-xs text-stone-500">{selectedCategories.size} categories</div></div><div className="mt-4 max-h-[900px] overflow-y-auto rounded-md border border-stone-800">{categories.filter((category) => selectedCategories.has(category)).map((category) => { const items = includedProducts.filter((product) => product.category === category); if (!items.length) return null; return <div key={category}><div className="sticky top-0 z-10 border-y border-stone-800 bg-stone-900 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-burgundy-300 first:border-t-0">{category}</div>{items.map((product) => <div key={product.id} className="grid gap-2 border-b border-stone-800 bg-stone-950 px-4 py-3 last:border-0 sm:grid-cols-[1fr_230px_90px]"><div className="min-w-0"><div className="text-sm font-medium text-stone-100">{product.name}</div>{includeNotes && product.note && <div className="mt-1 text-xs leading-5 text-stone-500">{product.note}</div>}</div><div className="whitespace-pre-line text-sm leading-5 text-stone-300">{priceText(product, includeSpecials)}</div><div className={`text-xs font-semibold ${product.stockStatus === "out_of_stock" ? "text-red-300" : "text-emerald-300"}`}>{product.stockStatus === "out_of_stock" ? "Out of stock" : "In stock"}</div></div>)}</div>; })}</div></section>
+            <section className="min-w-0"><div className="flex items-end justify-between gap-4"><div><div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-burgundy-400">Live preview</div><h2 className="mt-1 font-serif text-2xl text-stone-100">{includedProducts.length} products</h2><div className="mt-1 text-xs text-burgundy-300">Valid {formatValidityPeriod(validFrom, validUntil)}</div></div><div className="text-xs text-stone-500">{selectedCategories.size} categories</div></div><div className="mt-4 max-h-[900px] overflow-y-auto rounded-md border border-stone-800">{categories.filter((category) => selectedCategories.has(category)).map((category) => { const items = includedProducts.filter((product) => product.category === category); if (!items.length) return null; return <div key={category}><div className="sticky top-0 z-10 border-y border-stone-800 bg-stone-900 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-burgundy-300 first:border-t-0">{category}</div>{items.map((product) => <div key={product.id} className="grid gap-2 border-b border-stone-800 bg-stone-950 px-4 py-3 last:border-0 sm:grid-cols-[1fr_230px_90px]"><div className="min-w-0"><div className="text-sm font-medium text-stone-100">{product.name}</div>{includeNotes && product.note && <div className="mt-1 text-xs leading-5 text-stone-500">{product.note}</div>}</div><div className="whitespace-pre-line text-sm leading-5 text-stone-300">{priceText(product, includeSpecials)}</div><div className={`text-xs font-semibold ${product.stockStatus === "out_of_stock" ? "text-red-300" : "text-emerald-300"}`}>{product.stockStatus === "out_of_stock" ? "Out of stock" : "In stock"}</div></div>)}</div>; })}</div></section>
           </div>
         )}
       </main>

@@ -5,6 +5,7 @@ import {
   Eye,
   EyeOff,
   FileDown,
+  GripVertical,
   Loader2,
   LogOut,
   Megaphone,
@@ -14,6 +15,7 @@ import {
   RefreshCw,
   Save,
   Search,
+  Tags,
   X,
   XCircle,
 } from "lucide-react";
@@ -54,6 +56,13 @@ const CatalogueAdmin: React.FC = () => {
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [priceValue, setPriceValue] = useState("");
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [reordering, setReordering] = useState(false);
+  const [categoryEditorOpen, setCategoryEditorOpen] = useState(false);
+  const [categoryToRename, setCategoryToRename] = useState("");
+  const [categoryName, setCategoryName] = useState("");
+  const [renamingCategory, setRenamingCategory] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -89,17 +98,22 @@ const CatalogueAdmin: React.FC = () => {
     return () => window.clearTimeout(timeout);
   }, [notice]);
 
-  const categories = useMemo(
+  const orderedProducts = useMemo(
     () =>
-      Array.from(new Set<string>(products.map((product) => product.category))).sort((a, b) =>
-        a.localeCompare(b),
+      [...products].sort(
+        (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name),
       ),
     [products],
   );
 
+  const categories = useMemo(
+    () => Array.from(new Set<string>(orderedProducts.map((product) => product.category))),
+    [orderedProducts],
+  );
+
   const filteredProducts = useMemo(() => {
     const lower = query.trim().toLowerCase();
-    return products.filter(
+    return orderedProducts.filter(
       (product) =>
         (categoryFilter === "All" || product.category === categoryFilter) &&
         (!lower ||
@@ -107,7 +121,7 @@ const CatalogueAdmin: React.FC = () => {
           product.category.toLowerCase().includes(lower) ||
           product.note?.toLowerCase().includes(lower)),
     );
-  }, [products, query, categoryFilter]);
+  }, [orderedProducts, query, categoryFilter]);
 
   const replaceProduct = (product: Product) => {
     setProducts((current) =>
@@ -210,6 +224,88 @@ const CatalogueAdmin: React.FC = () => {
     setDraft((current) => (current ? { ...current, [key]: value } : current));
   };
 
+  const saveReorder = async (sourceId: string, targetId: string) => {
+    if (sourceId === targetId || reordering) return;
+    const sourceIndex = filteredProducts.findIndex((product) => product.id === sourceId);
+    const targetIndex = filteredProducts.findIndex((product) => product.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+
+    const reorderedVisible = [...filteredProducts];
+    const [moved] = reorderedVisible.splice(sourceIndex, 1);
+    reorderedVisible.splice(targetIndex, 0, moved);
+    const visibleIds = new Set(reorderedVisible.map((product) => product.id));
+    let visibleIndex = 0;
+    const reorderedAll = orderedProducts.map((product) =>
+      visibleIds.has(product.id) ? reorderedVisible[visibleIndex++] : product,
+    );
+    const optimistic = reorderedAll.map((product, index) => ({ ...product, sortOrder: index + 1 }));
+    const previous = products;
+
+    setProducts(optimistic);
+    setReordering(true);
+    setError("");
+    try {
+      const response = await fetch("/admin-api/products/reorder", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ productIds: reorderedAll.map((product) => product.id) }),
+      });
+      const result = await readJson<CatalogueResponse>(response);
+      setProducts(result.products);
+      setNotice(`${moved.name} moved to its new position.`);
+    } catch (reorderError) {
+      setProducts(previous);
+      setError(reorderError instanceof Error ? reorderError.message : "The product order could not be saved.");
+    } finally {
+      setDraggedId(null);
+      setDragOverId(null);
+      setReordering(false);
+    }
+  };
+
+  const openCategoryEditor = () => {
+    const initial = categoryFilter !== "All" && categories.includes(categoryFilter)
+      ? categoryFilter
+      : categories[0] ?? "";
+    setCategoryToRename(initial);
+    setCategoryName(initial);
+    setCategoryEditorOpen(true);
+    setError("");
+  };
+
+  const saveCategoryName = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const nextName = categoryName.trim().replace(/\s+/g, " ");
+    if (!categoryToRename || !nextName) {
+      setError("Enter a category name.");
+      return;
+    }
+
+    setRenamingCategory(true);
+    setError("");
+    try {
+      const response = await fetch("/admin-api/categories/rename", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ currentName: categoryToRename, nextName }),
+      });
+      const result = await readJson<CatalogueResponse & { renamed: number }>(response);
+      setProducts(result.products);
+      if (categoryFilter === categoryToRename) setCategoryFilter(nextName);
+      if (draft?.category === categoryToRename) setDraft({ ...draft, category: nextName });
+      setCategoryEditorOpen(false);
+      setNotice(
+        result.renamed > 0
+          ? `${categoryToRename} renamed to ${nextName} on ${result.renamed} products.`
+          : "Category name is unchanged.",
+      );
+    } catch (renameError) {
+      setError(renameError instanceof Error ? renameError.message : "The category could not be renamed.");
+    } finally {
+      setRenamingCategory(false);
+    }
+  };
+
   const inputClass =
     "w-full rounded-md border border-stone-700 bg-stone-950 px-3 py-2.5 text-sm text-stone-100 outline-none transition-colors placeholder:text-stone-600 focus:border-burgundy-500";
   const labelClass = "mb-2 block text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-400";
@@ -272,17 +368,27 @@ const CatalogueAdmin: React.FC = () => {
               {email ? `Signed in as ${email}` : "Checking your secure session"}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setDraft(emptyProduct(categories[0]));
-              setIsNew(true);
-              setError("");
-            }}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-burgundy-700 px-5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-burgundy-600"
-          >
-            <Plus size={16} /> Add product
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={openCategoryEditor}
+              disabled={!categories.length}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-stone-700 px-4 text-xs font-semibold uppercase tracking-[0.14em] text-stone-300 transition-colors hover:bg-stone-900 hover:text-stone-100 disabled:opacity-40"
+            >
+              <Tags size={16} /> Categories
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDraft(emptyProduct(categories[0]));
+                setIsNew(true);
+                setError("");
+              }}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-burgundy-700 px-5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-burgundy-600"
+            >
+              <Plus size={16} /> Add product
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -343,8 +449,8 @@ const CatalogueAdmin: React.FC = () => {
           </div>
         ) : (
           <div className="mt-6 overflow-hidden rounded-md border border-stone-800">
-            <div className="hidden grid-cols-[minmax(220px,1.3fr)_minmax(170px,0.8fr)_190px_160px_120px] gap-4 border-b border-stone-800 bg-stone-900/70 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500 lg:grid">
-              <span>Product</span><span>Category</span><span>Price</span><span>Availability</span><span>Actions</span>
+            <div className="hidden grid-cols-[40px_minmax(220px,1.3fr)_minmax(170px,0.8fr)_190px_160px_120px] gap-4 border-b border-stone-800 bg-stone-900/70 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500 lg:grid">
+              <span aria-hidden="true" /><span>Product</span><span>Category</span><span>Price</span><span>Availability</span><span>Actions</span>
             </div>
             {filteredProducts.map((product) => {
               const busy = rowBusy === product.id;
@@ -352,8 +458,47 @@ const CatalogueAdmin: React.FC = () => {
               return (
                 <div
                   key={product.id}
-                  className={`grid gap-4 border-b border-stone-800 px-4 py-4 last:border-0 lg:grid-cols-[minmax(220px,1.3fr)_minmax(170px,0.8fr)_190px_160px_120px] lg:items-center ${product.enabled === false ? "bg-stone-950 opacity-60" : "bg-stone-900/25"}`}
+                  onDragOver={(event) => {
+                    if (!draggedId || draggedId === product.id) return;
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                    setDragOverId(product.id);
+                  }}
+                  onDragLeave={(event) => {
+                    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                      setDragOverId((current) => (current === product.id ? null : current));
+                    }
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    if (draggedId) void saveReorder(draggedId, product.id);
+                  }}
+                  className={`grid gap-4 border-b px-4 py-4 transition-colors last:border-0 lg:grid-cols-[40px_minmax(220px,1.3fr)_minmax(170px,0.8fr)_190px_160px_120px] lg:items-center ${
+                    dragOverId === product.id
+                      ? "border-burgundy-500 bg-burgundy-950/30"
+                      : "border-stone-800"
+                  } ${draggedId === product.id ? "opacity-45" : product.enabled === false ? "bg-stone-950 opacity-60" : "bg-stone-900/25"}`}
                 >
+                  <button
+                    type="button"
+                    draggable={!reordering}
+                    disabled={reordering}
+                    onDragStart={(event) => {
+                      event.dataTransfer.effectAllowed = "move";
+                      event.dataTransfer.setData("text/plain", product.id);
+                      setDraggedId(product.id);
+                      setDragOverId(null);
+                    }}
+                    onDragEnd={() => {
+                      setDraggedId(null);
+                      setDragOverId(null);
+                    }}
+                    title={`Drag ${product.name} to reorder`}
+                    aria-label={`Drag ${product.name} to reorder`}
+                    className="flex h-10 w-10 cursor-grab items-center justify-center rounded-md border border-stone-700 text-stone-500 transition-colors hover:border-stone-500 hover:bg-stone-800 hover:text-stone-200 active:cursor-grabbing disabled:cursor-wait disabled:opacity-40"
+                  >
+                    {reordering && draggedId === product.id ? <Loader2 size={17} className="animate-spin" /> : <GripVertical size={18} />}
+                  </button>
                   <div className="min-w-0">
                     <div className="truncate font-medium text-stone-100">{product.name}</div>
                     <div className="mt-1 truncate text-xs text-stone-500">{product.note || "No product note"}</div>
@@ -461,6 +606,89 @@ const CatalogueAdmin: React.FC = () => {
           </div>
         )}
       </main>
+
+      {categoryEditorOpen && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm"
+          onClick={() => !renamingCategory && setCategoryEditorOpen(false)}
+        >
+          <form
+            onSubmit={saveCategoryName}
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-lg rounded-md border border-stone-700 bg-stone-900 shadow-2xl"
+          >
+            <div className="flex items-start justify-between border-b border-stone-800 px-5 py-5 sm:px-6">
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-burgundy-400">Catalogue sections</div>
+                <h2 className="mt-2 font-serif text-2xl text-stone-100">Rename a category</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCategoryEditorOpen(false)}
+                disabled={renamingCategory}
+                title="Close category editor"
+                className="flex h-10 w-10 items-center justify-center rounded-md border border-stone-700 text-stone-400 hover:text-stone-100 disabled:opacity-40"
+              >
+                <X size={17} />
+              </button>
+            </div>
+            <div className="space-y-5 px-5 py-6 sm:px-6">
+              <div>
+                <label className={labelClass}>Current category</label>
+                <select
+                  value={categoryToRename}
+                  onChange={(event) => {
+                    setCategoryToRename(event.target.value);
+                    setCategoryName(event.target.value);
+                  }}
+                  className={inputClass}
+                >
+                  {categories.map((category) => <option key={category}>{category}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>New category name</label>
+                <input
+                  required
+                  maxLength={80}
+                  value={categoryName}
+                  onChange={(event) => setCategoryName(event.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div className="flex items-center justify-between border-y border-stone-800 py-3 text-sm">
+                <span className="text-stone-500">Products in category</span>
+                <span className="font-semibold text-stone-200">
+                  {products.filter((product) => product.category === categoryToRename).length}
+                </span>
+              </div>
+              {categoryName.trim() !== categoryToRename && categories.includes(categoryName.trim()) && (
+                <div className="rounded-md border border-amber-800/50 bg-amber-950/25 px-4 py-3 text-sm text-amber-100">
+                  These products will join the existing {categoryName.trim()} category.
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3 border-t border-stone-800 px-5 py-5 sm:px-6">
+              <button
+                type="button"
+                onClick={() => setCategoryEditorOpen(false)}
+                disabled={renamingCategory}
+                className="h-11 flex-1 rounded-md border border-stone-700 text-xs font-semibold uppercase tracking-[0.14em] text-stone-300 hover:bg-stone-800 disabled:opacity-40"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={renamingCategory || !categoryName.trim()}
+                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-md bg-burgundy-700 text-xs font-semibold uppercase tracking-[0.14em] text-white hover:bg-burgundy-600 disabled:opacity-40"
+              >
+                {renamingCategory ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                Rename
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {draft && (
         <div className="fixed inset-0 z-40 flex justify-end bg-black/70 backdrop-blur-sm" onClick={() => !saving && setDraft(null)}>

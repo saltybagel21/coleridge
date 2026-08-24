@@ -192,3 +192,40 @@ export const deleteProduct = async (db: D1Database, id: string) => {
   const result = await db.prepare("DELETE FROM products WHERE id = ?").bind(id).run();
   return result.meta.changes > 0;
 };
+
+export const reorderProducts = async (db: D1Database, orderedIds: string[]) => {
+  await ensureCatalogue(db);
+  const existing = await db.prepare("SELECT id FROM products").all<{ id: string }>();
+  const existingIds = new Set(existing.results.map((row) => row.id));
+  const suppliedIds = new Set(orderedIds);
+
+  if (
+    orderedIds.length !== existingIds.size ||
+    suppliedIds.size !== orderedIds.length ||
+    orderedIds.some((id) => !existingIds.has(id))
+  ) {
+    throw new Error("The product order does not match the current catalogue.");
+  }
+
+  const updatedAt = new Date().toISOString();
+  await db.batch(
+    orderedIds.map((id, index) =>
+      db
+        .prepare("UPDATE products SET sort_order = ?, updated_at = ? WHERE id = ?")
+        .bind(index + 1, updatedAt, id),
+    ),
+  );
+
+  return listProducts(db, true);
+};
+
+export const renameCategory = async (db: D1Database, currentName: string, nextName: string) => {
+  await ensureCatalogue(db);
+  const updatedAt = new Date().toISOString();
+  const result = await db
+    .prepare("UPDATE products SET category = ?, updated_at = ? WHERE category = ?")
+    .bind(nextName, updatedAt, currentName)
+    .run();
+
+  return result.meta.changes;
+};

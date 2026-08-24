@@ -6,6 +6,8 @@ import {
   Store,
   Building2,
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
   Search,
   Check,
   ShieldCheck,
@@ -18,7 +20,6 @@ import {
   X,
 } from "lucide-react";
 import {
-  PUBLIC_CATEGORY_ORDER,
   PUBLIC_PRODUCTS,
   RETAIL_PRODUCTS,
   WHOLESALE_PRODUCTS,
@@ -1385,6 +1386,13 @@ export const ShopGrid: React.FC = () => {
   const [activeCat, setActiveCat] = useState<string>(() =>
     new URLSearchParams(window.location.search).get("view") === "specials" ? "Specials" : "All",
   );
+  const categoryScrollerRef = useRef<HTMLDivElement | null>(null);
+  const [categoryScroll, setCategoryScroll] = useState({
+    canBack: false,
+    canForward: false,
+    thumbWidth: 100,
+    thumbOffset: 0,
+  });
   const products = useLiveProducts(PUBLIC_PRODUCTS, "retail");
   const specialProducts = useMemo(
     () => products.filter((product) => (product.specials?.length ?? 0) > 0),
@@ -1406,12 +1414,70 @@ export const ShopGrid: React.FC = () => {
     return Array.from(campaigns.values());
   }, [specialProducts]);
   const order = useMemo(() => {
-    const liveCategories = Array.from(new Set<string>(products.map((product) => product.category)));
-    return [
-      ...PUBLIC_CATEGORY_ORDER.filter((category) => liveCategories.includes(category)),
-      ...liveCategories.filter((category) => !PUBLIC_CATEGORY_ORDER.includes(category)),
-    ];
+    const ordered = products
+      .map((product, index) => ({ product, index }))
+      .sort(
+        (a, b) =>
+          (a.product.sortOrder ?? a.index + 1) - (b.product.sortOrder ?? b.index + 1) ||
+          a.index - b.index,
+      );
+    return Array.from(new Set<string>(ordered.map(({ product }) => product.category)));
   }, [products]);
+
+  useEffect(() => {
+    const scroller = categoryScrollerRef.current;
+    if (!scroller) return;
+
+    const updateScrollState = () => {
+      const maxScroll = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+      const thumbWidth = scroller.scrollWidth > 0
+        ? Math.max(12, Math.min(100, (scroller.clientWidth / scroller.scrollWidth) * 100))
+        : 100;
+      const thumbOffset = maxScroll > 0
+        ? (scroller.scrollLeft / maxScroll) * (100 - thumbWidth)
+        : 0;
+      setCategoryScroll({
+        canBack: scroller.scrollLeft > 2,
+        canForward: scroller.scrollLeft < maxScroll - 2,
+        thumbWidth,
+        thumbOffset,
+      });
+    };
+
+    updateScrollState();
+    const frame = window.requestAnimationFrame(updateScrollState);
+    scroller.addEventListener("scroll", updateScrollState, { passive: true });
+    const observer = new ResizeObserver(updateScrollState);
+    observer.observe(scroller);
+    if (scroller.firstElementChild) observer.observe(scroller.firstElementChild);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      scroller.removeEventListener("scroll", updateScrollState);
+      observer.disconnect();
+    };
+  }, [order, specialProducts.length]);
+
+  useEffect(() => {
+    const scroller = categoryScrollerRef.current;
+    if (!scroller) return;
+    const activeButton = scroller.querySelector<HTMLElement>(
+      `[data-category-tab="${CSS.escape(activeCat)}"]`,
+    );
+    activeButton?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [activeCat]);
+
+  useEffect(() => {
+    if (activeCat !== "All" && activeCat !== "Specials" && !order.includes(activeCat)) {
+      setActiveCat("All");
+    }
+  }, [activeCat, order]);
+
+  const scrollCategories = (direction: -1 | 1) => {
+    const scroller = categoryScrollerRef.current;
+    if (!scroller) return;
+    scroller.scrollBy({ left: direction * Math.max(240, scroller.clientWidth * 0.72), behavior: "smooth" });
+  };
 
   useEffect(() => {
     syncProducts(products);
@@ -1589,28 +1655,77 @@ export const ShopGrid: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-10 overflow-x-auto pb-2 [scrollbar-width:none]">
-          <div className="flex min-w-max gap-2">
-            {["All", ...(specialProducts.length ? ["Specials"] : []), ...order].map((category) => {
-              const active = activeCat === category;
+        <div className="mt-10">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => scrollCategories(-1)}
+              disabled={!categoryScroll.canBack}
+              title="Previous categories"
+              aria-label="Scroll to previous categories"
+              className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border border-stone-700 bg-stone-900 text-stone-200 transition-colors hover:border-stone-500 hover:bg-stone-800 disabled:cursor-default disabled:opacity-25 md:flex"
+            >
+              <ChevronLeft size={19} />
+            </button>
+            <div
+              ref={categoryScrollerRef}
+              onWheel={(event) => {
+                const scroller = categoryScrollerRef.current;
+                if (!scroller || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+                const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+                const canMove = event.deltaY > 0
+                  ? scroller.scrollLeft < maxScroll - 2
+                  : scroller.scrollLeft > 2;
+                if (!canMove) return;
+                event.preventDefault();
+                scroller.scrollLeft += event.deltaY;
+              }}
+              className="min-w-0 flex-1 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              <div className="flex min-w-max gap-2">
+                {["All", ...(specialProducts.length ? ["Specials"] : []), ...order].map((category) => {
+                  const active = activeCat === category;
 
-              return (
-                <motion.button
-                  key={category}
-                  type="button"
-                  whileHover={active ? undefined : { y: -1 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setActiveCat(category)}
-                  className={`relative whitespace-nowrap rounded-full border px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.22em] transition-colors ${
-                    active
-                      ? "border-burgundy-700 bg-burgundy-800 text-stone-100"
-                      : "border-stone-700/70 bg-stone-900/70 text-stone-400 hover:border-stone-500 hover:text-stone-200"
-                  }`}
-                >
-                  {category}
-                </motion.button>
-              );
-            })}
+                  return (
+                    <motion.button
+                      key={category}
+                      type="button"
+                      data-category-tab={category}
+                      aria-current={active ? "page" : undefined}
+                      whileHover={active ? undefined : { y: -1 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setActiveCat(category)}
+                      className={`relative whitespace-nowrap rounded-full border px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.22em] transition-colors ${
+                        active
+                          ? "border-burgundy-700 bg-burgundy-800 text-stone-100"
+                          : "border-stone-700/70 bg-stone-900/70 text-stone-400 hover:border-stone-500 hover:text-stone-200"
+                      }`}
+                    >
+                      {category}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => scrollCategories(1)}
+              disabled={!categoryScroll.canForward}
+              title="More categories"
+              aria-label="Scroll to more categories"
+              className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border border-stone-700 bg-stone-900 text-stone-200 transition-colors hover:border-stone-500 hover:bg-stone-800 disabled:cursor-default disabled:opacity-25 md:flex"
+            >
+              <ChevronRight size={19} />
+            </button>
+          </div>
+          <div className="mx-1 mt-1 h-1 overflow-hidden rounded-full bg-stone-800 md:mx-[52px]" aria-hidden="true">
+            <div
+              className="h-full rounded-full bg-burgundy-600 transition-[width,transform] duration-150"
+              style={{
+                width: `${categoryScroll.thumbWidth}%`,
+                transform: `translateX(${categoryScroll.thumbOffset / (categoryScroll.thumbWidth / 100)}%)`,
+              }}
+            />
           </div>
         </div>
 
