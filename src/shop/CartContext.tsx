@@ -72,9 +72,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setItems(prev => {
       const existing = prev.find(l => l.product.id === p.id);
       if (existing) {
+        const hasSpecificOptions = Boolean(getQuantityRules(p).options?.length);
         return prev.map(l =>
           l.product.id === p.id
-            ? { ...l, qty: sanitizeProductQuantity(p, l.qty + qty) }
+            ? { ...l, product: p, qty: sanitizeProductQuantity(p, hasSpecificOptions ? qty : l.qty + qty) }
             : l
         );
       }
@@ -155,6 +156,8 @@ export const formatProductName = (name: string) =>
   });
 
 export const formatQty = (qty: number, unit: Product["unit"]) => {
-  const clean = Number.isInteger(qty) ? qty.toString() : qty.toFixed(1).replace(/\.0$/, "");
+  const clean = Number.isInteger(qty)
+    ? qty.toString()
+    : qty.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
   return unit === "kg" ? `${clean} kg` : `${clean} item${qty === 1 ? "" : "s"}`;
 };

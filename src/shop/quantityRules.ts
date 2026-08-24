@@ -4,9 +4,29 @@ export interface QuantityRules {
   minQty: number;
   step: number;
   maxQty?: number;
+  options?: number[];
 }
 
+const cleanQuantityOptions = (product: Product) =>
+  Array.from(
+    new Set(
+      (product.quantityOptions ?? [])
+        .filter((option) => Number.isFinite(option) && option > 0)
+        .map((option) => Number(option.toFixed(3))),
+    ),
+  ).sort((a, b) => a - b);
+
 export const getQuantityRules = (product: Product): QuantityRules => {
+  const options = cleanQuantityOptions(product);
+  if (options.length) {
+    return {
+      minQty: options[0],
+      step: options.length > 1 ? Number((options[1] - options[0]).toFixed(3)) : 1,
+      maxQty: options[options.length - 1],
+      options,
+    };
+  }
+
   const isKg = product.unit === "kg";
   const note = (product.note ?? "").toLowerCase();
 
@@ -39,14 +59,23 @@ export const getQuantityRules = (product: Product): QuantityRules => {
 };
 
 export const isQuantityOnStep = (quantity: number, rules: QuantityRules) => {
+  if (rules.options?.length) {
+    return rules.options.some((option) => Math.abs(option - quantity) < 0.0001);
+  }
   if (quantity < rules.minQty) return false;
   const steps = (quantity - rules.minQty) / rules.step;
   return Math.abs(steps - Math.round(steps)) < 0.0001;
 };
 
 export const sanitizeProductQuantity = (product: Product, quantity: number) => {
-  const { minQty, step, maxQty } = getQuantityRules(product);
+  const { minQty, step, maxQty, options } = getQuantityRules(product);
   if (!Number.isFinite(quantity)) return minQty;
+
+  if (options?.length) {
+    return options.reduce((closest, option) =>
+      Math.abs(option - quantity) < Math.abs(closest - quantity) ? option : closest,
+    );
+  }
 
   const stepsFromMin = Math.round((quantity - minQty) / step);
   const snapped = minQty + Math.max(0, stepsFromMin) * step;

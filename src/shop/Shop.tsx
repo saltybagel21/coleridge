@@ -27,7 +27,7 @@ import {
 } from "./products";
 import type { Product } from "./products";
 import { useLiveProducts } from "./liveCatalogue";
-import { useCart, getQuantityRules, formatProductName, formatQty, formatZAR } from "./CartContext";
+import { useCart, getLinePricing, getQuantityRules, formatProductName, formatQty, formatZAR } from "./CartContext";
 import { formatTierRange, getLowestSpecialPrice, getPrimarySpecial } from "../shared/specials";
 
 type OrderMode = "retail" | "wholesale";
@@ -311,6 +311,10 @@ const scrollToShopGrid = () => {
 
 const getOrderMeta = (product: Product) => {
   const rules = getQuantityRules(product);
+
+  if (rules.options?.length) {
+    return rules.options.length === 1 ? formatQty(rules.options[0], product.unit) : `${rules.options.length} order sizes`;
+  }
 
   if (rules.maxQty != null) {
     return `${formatQty(rules.minQty, product.unit)}-${formatQty(rules.maxQty, product.unit)}`;
@@ -1091,7 +1095,6 @@ const CategoryBanner: React.FC<{ category: string; count: number }> = ({ categor
         </div>
 
         <div className="max-w-xl">
-          <div className="mb-3 h-12 w-[3px] rounded-full bg-gradient-to-b from-burgundy-500 to-transparent" />
           <h4 className="text-3xl font-serif text-stone-50 sm:text-4xl">{category}</h4>
           <p className="mt-3 max-w-md text-sm leading-6 text-stone-300 sm:text-base">
             {visual?.tagline ?? "A refined selection prepared with the same care as the in-store counter."}
@@ -1107,6 +1110,7 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
   const [flash, setFlash] = useState(false);
   const [showPhoto, setShowPhoto] = useState(false);
   const [showSpecialPricing, setShowSpecialPricing] = useState(false);
+  const [showQuantityPicker, setShowQuantityPicker] = useState(false);
   const rules = getQuantityRules(product);
   const hasPhoto = PRODUCT_PHOTOS_ENABLED && Boolean(product.image);
   const isOutOfStock = product.stockStatus === "out_of_stock";
@@ -1121,22 +1125,33 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
   const sortedSpecialTiers = quantitySpecial?.tiers.slice().sort((a, b) => (a.minQty ?? -1) - (b.minQty ?? -1)) ?? [];
   const previewTiers = sortedSpecialTiers.slice(0, sortedSpecialTiers.length > 3 ? 2 : 3);
 
-  const handleAdd = () => {
+  const addQuantity = (quantity: number) => {
     if (isOutOfStock) return;
-    const initialQty = rules.minQty;
-    add(product, orderType, initialQty);
+    add(product, orderType, quantity);
     setShowSpecialPricing(false);
+    setShowQuantityPicker(false);
     setFlash(true);
     window.setTimeout(() => setFlash(false), 750);
   };
 
+  const handleAdd = () => {
+    if (isOutOfStock) return;
+    if (rules.options && rules.options.length > 1) {
+      setShowSpecialPricing(false);
+      setShowQuantityPicker(true);
+      return;
+    }
+    addQuantity(rules.minQty);
+  };
+
   useEffect(() => {
-    if (!showPhoto && !showSpecialPricing) return;
+    if (!showPhoto && !showSpecialPricing && !showQuantityPicker) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setShowPhoto(false);
         setShowSpecialPricing(false);
+        setShowQuantityPicker(false);
       }
     };
     const originalOverflow = document.body.style.overflow;
@@ -1147,7 +1162,7 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
       document.body.style.overflow = originalOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [showPhoto, showSpecialPricing]);
+  }, [showPhoto, showSpecialPricing, showQuantityPicker]);
 
   return (
     <>
@@ -1282,6 +1297,32 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
           </div>
         </div>
       </motion.article>
+
+      <AnimatePresence>
+        {showQuantityPicker && rules.options?.length && (
+          <motion.div className="fixed inset-0 z-[97] overflow-y-auto bg-stone-950/88 px-4 py-6 backdrop-blur-md" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowQuantityPicker(false)}>
+            <div className="flex min-h-full items-center justify-center">
+              <motion.div role="dialog" aria-modal="true" aria-labelledby={`quantity-picker-title-${product.id}`} className="w-full max-w-md rounded-lg border border-stone-700 bg-stone-950 p-5 shadow-2xl sm:p-7" initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.98 }} onClick={(event) => event.stopPropagation()}>
+                <div className="flex items-start justify-between gap-4">
+                  <div><div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-burgundy-300">Choose order quantity</div><h3 id={`quantity-picker-title-${product.id}`} className="mt-2 font-serif text-3xl text-stone-100">{formatProductName(product.name)}</h3></div>
+                  <button type="button" onClick={() => setShowQuantityPicker(false)} aria-label="Close quantity picker" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-stone-700 text-stone-400 hover:bg-stone-900 hover:text-white"><X size={17} /></button>
+                </div>
+                <div className="mt-6 grid gap-2">
+                  {rules.options.map((option) => {
+                    const pricing = getLinePricing(product, option);
+                    return (
+                      <button key={option} type="button" onClick={() => addQuantity(option)} className="flex min-h-14 items-center justify-between gap-4 rounded-md border border-stone-700 bg-stone-900/55 px-4 text-left transition-colors hover:border-burgundy-600 hover:bg-stone-900">
+                        <strong className="text-base text-stone-100">{formatQty(option, product.unit)}</strong>
+                        <span className="text-sm text-stone-400">{pricing.unitPrice === 0 && product.priceLabel ? "Total to confirm" : `${formatZAR(pricing.lineTotal)} total`}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showSpecialPricing && quantitySpecial && (

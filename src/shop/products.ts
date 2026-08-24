@@ -18,6 +18,7 @@ export interface Product {
   minQty?: number;
   qtyStep?: number;
   maxQty?: number;
+  quantityOptions?: number[];
   stockStatus?: StockStatus;
   enabled?: boolean;
   sortOrder?: number;

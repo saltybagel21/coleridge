@@ -12,6 +12,7 @@ type ProductRow = {
   min_qty: number | null;
   qty_step: number | null;
   max_qty: number | null;
+  quantity_options: string | null;
   stock_status: StockStatus;
   enabled: number;
   sort_order: number;
@@ -29,6 +30,7 @@ const CREATE_PRODUCTS = `
     min_qty REAL,
     qty_step REAL,
     max_qty REAL,
+    quantity_options TEXT,
     stock_status TEXT NOT NULL DEFAULT 'in_stock' CHECK (stock_status IN ('in_stock', 'out_of_stock')),
     enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
     sort_order INTEGER NOT NULL DEFAULT 0,
@@ -48,6 +50,7 @@ const PRODUCT_COLUMNS = [
   "min_qty",
   "qty_step",
   "max_qty",
+  "quantity_options",
   "stock_status",
   "enabled",
   "sort_order",
@@ -66,6 +69,7 @@ const toDatabaseValues = (product: Product, now: string) => [
   product.minQty ?? null,
   product.qtyStep ?? null,
   product.maxQty ?? null,
+  product.quantityOptions?.length ? JSON.stringify(product.quantityOptions) : null,
   product.stockStatus ?? "in_stock",
   product.enabled === false ? 0 : 1,
   product.sortOrder ?? 0,
@@ -73,26 +77,52 @@ const toDatabaseValues = (product: Product, now: string) => [
   now,
 ];
 
-const rowToProduct = (row: ProductRow): Product => ({
-  id: row.id,
-  name: row.name,
-  category: row.category,
-  price: row.price,
-  ...(row.price_label ? { priceLabel: row.price_label } : {}),
-  unit: row.unit,
-  ...(row.note ? { note: row.note } : {}),
-  ...(row.min_qty != null ? { minQty: row.min_qty } : {}),
-  ...(row.qty_step != null ? { qtyStep: row.qty_step } : {}),
-  ...(row.max_qty != null ? { maxQty: row.max_qty } : {}),
-  stockStatus: row.stock_status,
-  enabled: row.enabled === 1,
-  sortOrder: row.sort_order,
-});
+const parseQuantityOptions = (value: string | null) => {
+  if (!value) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) && parsed.every((option) => typeof option === "number")
+      ? parsed
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const rowToProduct = (row: ProductRow): Product => {
+  const quantityOptions = parseQuantityOptions(row.quantity_options);
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    price: row.price,
+    ...(row.price_label ? { priceLabel: row.price_label } : {}),
+    unit: row.unit,
+    ...(row.note ? { note: row.note } : {}),
+    ...(row.min_qty != null ? { minQty: row.min_qty } : {}),
+    ...(row.qty_step != null ? { qtyStep: row.qty_step } : {}),
+    ...(row.max_qty != null ? { maxQty: row.max_qty } : {}),
+    ...(quantityOptions ? { quantityOptions } : {}),
+    stockStatus: row.stock_status,
+    enabled: row.enabled === 1,
+    sortOrder: row.sort_order,
+  };
+};
 
 let catalogueReady: Promise<void> | undefined;
 
 const initialiseCatalogue = async (db: D1Database) => {
   await db.prepare(CREATE_PRODUCTS).run();
+  const columns = await db.prepare("PRAGMA table_info(products)").all<{ name: string }>();
+  if (!columns.results.some((column) => column.name === "quantity_options")) {
+    try {
+      await db.prepare("ALTER TABLE products ADD COLUMN quantity_options TEXT").run();
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.toLowerCase().includes("duplicate column")) {
+        throw error;
+      }
+    }
+  }
   await db
     .prepare("CREATE INDEX IF NOT EXISTS idx_products_visible_order ON products(enabled, sort_order, name)")
     .run();
@@ -137,6 +167,7 @@ export const listProducts = async (db: D1Database, includeDisabled = false) => {
 };
 
 export const getProduct = async (db: D1Database, id: string) => {
+  await ensureCatalogue(db);
   const row = await db.prepare("SELECT * FROM products WHERE id = ?").bind(id).first<ProductRow>();
   return row ? rowToProduct(row) : null;
 };
@@ -163,7 +194,7 @@ export const updateProduct = async (db: D1Database, id: string, product: Product
     .prepare(`
       UPDATE products SET
         name = ?, category = ?, price = ?, price_label = ?, unit = ?, note = ?,
-        min_qty = ?, qty_step = ?, max_qty = ?, stock_status = ?, enabled = ?,
+        min_qty = ?, qty_step = ?, max_qty = ?, quantity_options = ?, stock_status = ?, enabled = ?,
         sort_order = ?, updated_at = ?
       WHERE id = ?
     `)
@@ -177,6 +208,7 @@ export const updateProduct = async (db: D1Database, id: string, product: Product
       product.minQty ?? null,
       product.qtyStep ?? null,
       product.maxQty ?? null,
+      product.quantityOptions?.length ? JSON.stringify(product.quantityOptions) : null,
       product.stockStatus ?? "in_stock",
       product.enabled === false ? 0 : 1,
       product.sortOrder ?? 0,

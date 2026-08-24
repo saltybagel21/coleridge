@@ -49,6 +49,27 @@ export const validateProduct = (
     return { ok: false, error: "Maximum quantity cannot be below the minimum." };
   }
 
+  if (input.quantityOptions != null && !Array.isArray(input.quantityOptions)) {
+    return { ok: false, error: "Specific order quantities must be a list." };
+  }
+  const rawQuantityOptions = Array.isArray(input.quantityOptions) ? input.quantityOptions : [];
+  if (rawQuantityOptions.length > 20) {
+    return { ok: false, error: "Add no more than 20 specific order quantities." };
+  }
+  const quantityOptions = Array.from(
+    new Set(
+      rawQuantityOptions.map((value) => {
+        const quantity = typeof value === "number" ? value : Number(value);
+        return Number.isFinite(quantity) && quantity > 0 && quantity <= 1_000_000
+          ? Number(quantity.toFixed(3))
+          : NaN;
+      }),
+    ),
+  ).sort((a, b) => a - b);
+  if (quantityOptions.some((quantity) => !Number.isFinite(quantity))) {
+    return { ok: false, error: "Enter only positive specific order quantities." };
+  }
+
   const requestedSort = optionalNumber(input.sortOrder);
   const sortOrder = Math.round(requestedSort ?? options.defaultSortOrder);
 
@@ -65,6 +86,7 @@ export const validateProduct = (
       ...(minQty != null ? { minQty } : {}),
       ...(qtyStep != null && qtyStep > 0 ? { qtyStep } : {}),
       ...(maxQty != null ? { maxQty } : {}),
+      ...(quantityOptions.length ? { quantityOptions } : {}),
       stockStatus,
       enabled: input.enabled !== false,
       sortOrder,

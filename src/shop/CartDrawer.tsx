@@ -10,9 +10,11 @@ const QuantityInput: React.FC<{
   minQty: number;
   maxQty?: number;
   step: number;
+  options?: number[];
+  unit: "kg" | "each";
   setQty: (id: string, qty: number) => void;
   remove: (id: string) => void;
-}> = ({ id, qty, minQty, maxQty, step, setQty, remove }) => {
+}> = ({ id, qty, minQty, maxQty, step, options, unit, setQty, remove }) => {
   const [draft, setDraft] = useState(String(qty));
 
   useEffect(() => setDraft(String(qty)), [qty]);
@@ -29,6 +31,21 @@ const QuantityInput: React.FC<{
     }
     setQty(id, value);
   };
+
+  if (options?.length) {
+    return (
+      <select
+        value={qty}
+        onChange={(event) => setQty(id, Number(event.target.value))}
+        aria-label="Order quantity"
+        className="h-8 w-28 bg-stone-950 px-2 text-center text-xs text-stone-100 focus:outline-none"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>{formatQty(option, unit)}</option>
+        ))}
+      </select>
+    );
+  }
 
   return (
     <input
@@ -124,16 +141,28 @@ export const CartDrawer: React.FC = () => {
                 <ul className="divide-y divide-stone-900">
                   {items.map((line) => {
                     const isKg = line.product.unit === "kg";
-                    const { step, minQty, maxQty } = getQuantityRules(line.product);
+                    const { step, minQty, maxQty, options } = getQuantityRules(line.product);
                     const pricing = getLinePricing(line.product, line.qty);
+                    const optionIndex = options?.findIndex((option) => Math.abs(option - line.qty) < 0.0001) ?? -1;
 
                     const decrement = () => {
+                      if (options?.length) {
+                        if (optionIndex <= 0) remove(line.product.id);
+                        else setQty(line.product.id, options[optionIndex - 1]);
+                        return;
+                      }
                       const next = parseFloat((line.qty - step).toFixed(3));
                       if (next < minQty) remove(line.product.id);
                       else setQty(line.product.id, next);
                     };
 
                     const increment = () => {
+                      if (options?.length) {
+                        if (optionIndex >= 0 && optionIndex < options.length - 1) {
+                          setQty(line.product.id, options[optionIndex + 1]);
+                        }
+                        return;
+                      }
                       const next = parseFloat((line.qty + step).toFixed(3));
                       setQty(line.product.id, maxQty ? Math.min(maxQty, next) : next);
                     };
@@ -156,12 +185,17 @@ export const CartDrawer: React.FC = () => {
                             ) : (
                               <>{line.product.priceLabel ?? formatZAR(line.product.price)} / {isKg ? "kg" : "item"}</>
                             )}
-                            {maxQty && (
+                            {!options?.length && maxQty ? (
                               <span className="ml-1">
-                                ({formatQty(minQty, "kg")} - {formatQty(maxQty, "kg")})
+                                ({formatQty(minQty, line.product.unit)} - {formatQty(maxQty, line.product.unit)})
                               </span>
-                            )}
+                            ) : null}
                           </div>
+                          {options?.length ? (
+                            <div className="mb-3 text-[10px] font-semibold uppercase leading-4 tracking-[0.12em] text-stone-600">
+                              Order sizes: {options.map((option) => formatQty(option, line.product.unit)).join(" / ")}
+                            </div>
+                          ) : null}
                           {pricing.isSpecial && (
                             <>
                               <div className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-emerald-300">
@@ -198,20 +232,25 @@ export const CartDrawer: React.FC = () => {
                                 minQty={minQty}
                                 maxQty={maxQty}
                                 step={step}
+                                options={options}
+                                unit={line.product.unit}
                                 setQty={setQty}
                                 remove={remove}
                               />
                               <button
                                 onClick={increment}
+                                disabled={Boolean(options?.length && optionIndex === options.length - 1)}
                                 aria-label="Increase"
-                                className="flex h-8 w-8 items-center justify-center text-stone-400 transition-colors hover:bg-stone-900 hover:text-stone-100"
+                                className="flex h-8 w-8 items-center justify-center text-stone-400 transition-colors hover:bg-stone-900 hover:text-stone-100 disabled:cursor-default disabled:opacity-25"
                               >
                                 <Plus size={14} />
                               </button>
                             </div>
-                            <span className="text-[10px] uppercase tracking-widest text-stone-500">
-                              {isKg ? "kg" : "items"}
-                            </span>
+                            {!options?.length ? (
+                              <span className="text-[10px] uppercase tracking-widest text-stone-500">
+                                {isKg ? "kg" : "items"}
+                              </span>
+                            ) : null}
                             <button
                               onClick={() => remove(line.product.id)}
                               aria-label="Remove"

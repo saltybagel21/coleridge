@@ -44,6 +44,25 @@ const readJson = async <T,>(response: Response): Promise<T> => {
   return data;
 };
 
+const parseQuantityOptions = (value: string) => {
+  const entries = value
+    .split(/[,;\n]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  if (entries.length > 20) return { error: "Add no more than 20 specific order quantities." };
+
+  const quantities = entries.map(Number);
+  if (quantities.some((quantity) => !Number.isFinite(quantity) || quantity <= 0 || quantity > 1_000_000)) {
+    return { error: "Enter positive quantities separated by commas." };
+  }
+
+  return {
+    quantities: Array.from(new Set(quantities.map((quantity) => Number(quantity.toFixed(3))))).sort(
+      (a, b) => a - b,
+    ),
+  };
+};
+
 const CatalogueAdmin: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [email, setEmail] = useState("");
@@ -56,6 +75,7 @@ const CatalogueAdmin: React.FC = () => {
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [priceValue, setPriceValue] = useState("");
+  const [quantityOptionsText, setQuantityOptionsText] = useState("");
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [reordering, setReordering] = useState(false);
@@ -97,6 +117,11 @@ const CatalogueAdmin: React.FC = () => {
     const timeout = window.setTimeout(() => setNotice(""), 3200);
     return () => window.clearTimeout(timeout);
   }, [notice]);
+
+  const parsedQuantityOptions = useMemo(
+    () => parseQuantityOptions(quantityOptionsText),
+    [quantityOptionsText],
+  );
 
   const orderedProducts = useMemo(
     () =>
@@ -143,13 +168,28 @@ const CatalogueAdmin: React.FC = () => {
     return readJson<{ product: Product }>(response);
   };
 
+  const openProductEditor = (product: Product, creating: boolean) => {
+    setDraft({ ...product });
+    setQuantityOptionsText(product.quantityOptions?.join(", ") ?? "");
+    setIsNew(creating);
+    setError("");
+  };
+
   const saveDraft = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!draft) return;
+    if (parsedQuantityOptions.error) {
+      setError(parsedQuantityOptions.error);
+      return;
+    }
+    const productToSave: Product = {
+      ...draft,
+      quantityOptions: parsedQuantityOptions.quantities?.length ? parsedQuantityOptions.quantities : undefined,
+    };
     setSaving(true);
     setError("");
     try {
-      const result = await persist(draft, isNew);
+      const result = await persist(productToSave, isNew);
       if (isNew) {
         setProducts((current) => [...current, result.product]);
       } else {
@@ -379,11 +419,7 @@ const CatalogueAdmin: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setDraft(emptyProduct(categories[0]));
-                setIsNew(true);
-                setError("");
-              }}
+              onClick={() => openProductEditor(emptyProduct(categories[0]), true)}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-burgundy-700 px-5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-burgundy-600"
             >
               <Plus size={16} /> Add product
@@ -581,7 +617,7 @@ const CatalogueAdmin: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => { setDraft({ ...product }); setIsNew(false); setError(""); }}
+                      onClick={() => openProductEditor(product, false)}
                       title="Edit product"
                       className="flex h-9 w-9 items-center justify-center rounded-md border border-stone-700 text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-100"
                     >
@@ -741,6 +777,26 @@ const CatalogueAdmin: React.FC = () => {
                 <div><label className={labelClass}>Minimum</label><input type="number" min="0" step="0.01" value={draft.minQty ?? ""} onChange={(event) => updateDraft("minQty", event.target.value === "" ? undefined : Number(event.target.value))} className={inputClass} /></div>
                 <div><label className={labelClass}>Quantity step</label><input type="number" min="0.01" step="0.01" value={draft.qtyStep ?? ""} onChange={(event) => updateDraft("qtyStep", event.target.value === "" ? undefined : Number(event.target.value))} className={inputClass} /></div>
                 <div><label className={labelClass}>Display order</label><input type="number" min="0" step="1" value={draft.sortOrder ?? ""} onChange={(event) => updateDraft("sortOrder", event.target.value === "" ? undefined : Number(event.target.value))} className={inputClass} /></div>
+              </div>
+              <div>
+                <label htmlFor="specific-order-quantities" className={labelClass}>Specific order quantities (optional)</label>
+                <input
+                  id="specific-order-quantities"
+                  value={quantityOptionsText}
+                  onChange={(event) => setQuantityOptionsText(event.target.value)}
+                  placeholder="10, 20, 50"
+                  inputMode="decimal"
+                  className={inputClass}
+                />
+                {parsedQuantityOptions.quantities?.length ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {parsedQuantityOptions.quantities.map((quantity) => (
+                      <span key={quantity} className="rounded-full border border-stone-700 bg-stone-950 px-2.5 py-1 text-[10px] font-semibold text-stone-300">
+                        {quantity} {draft.unit === "kg" ? "kg" : quantity === 1 ? "item" : "items"}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="flex cursor-pointer items-center justify-between rounded-md border border-stone-700 bg-stone-950 px-4 py-3">
