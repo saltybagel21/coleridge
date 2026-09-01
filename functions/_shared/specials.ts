@@ -241,14 +241,10 @@ export const validateSpecialCampaign = (
           return { ok: false, error: `${displayName || productId} tiers must start at ${quantityRules.minQty} or higher.` };
         }
         if (quantityRules && !isQuantityOnStep(minQty, quantityRules)) {
-          return { ok: false, error: quantityRules.options?.length
-            ? `${displayName || productId} tier minimums must use a configured order quantity.`
-            : `${displayName || productId} tier minimums must follow its ${quantityRules.step} quantity step.` };
+          return { ok: false, error: `${displayName || productId} tier minimums must follow its ${quantityRules.step} quantity step.` };
         }
         if (quantityRules && maxQty != null && !isQuantityOnStep(maxQty, quantityRules)) {
-          return { ok: false, error: quantityRules.options?.length
-            ? `${displayName || productId} tier limits must use a configured order quantity.`
-            : `${displayName || productId} tier limits must follow its ${quantityRules.step} quantity step.` };
+          return { ok: false, error: `${displayName || productId} tier limits must follow its ${quantityRules.step} quantity step.` };
         }
         if (quantityRules?.maxQty != null && (minQty > quantityRules.maxQty || (maxQty != null && maxQty > quantityRules.maxQty))) {
           return { ok: false, error: `${displayName || productId} tiers cannot exceed its maximum order quantity.` };

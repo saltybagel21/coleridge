@@ -639,10 +639,10 @@ const Hero = () => {
           
           <motion.div variants={fadeInUp} className="relative z-30 flex flex-row flex-wrap items-center justify-center gap-3 sm:flex-nowrap sm:gap-4">
             <motion.a
-              href="#shop"
+              href="#shop-products-start"
               onClick={(event) => {
                 event.preventDefault();
-                scrollToSection("#shop");
+                scrollToSection("#shop-products-start");
               }}
               className="min-w-0 flex-1 rounded-sm bg-burgundy-800 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-100 transition-colors hover:bg-burgundy-700 sm:w-auto sm:flex-none sm:px-8 sm:py-4 sm:text-sm sm:tracking-widest"
               whileHover={{ scale: 1.05 }}

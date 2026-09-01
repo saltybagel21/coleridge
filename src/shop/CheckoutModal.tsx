@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, CheckCircle2, MessageCircle, Loader2 } from "lucide-react";
-import { useCart, getLinePricing, formatProductName, formatQty, formatZAR } from "./CartContext";
+import { useCart, getCartLinePacks, getLinePricing, formatProductName, formatQty, formatZAR } from "./CartContext";
 
 const BUSINESS_WHATSAPP_NUMBER = "27611275756";
 const DELIVERY_MINIMUM = 300;
 const STELLENBOSCH_DELIVERY_TERMS = ["stellenbosch", "cloetesville"];
+const CUSTOMER_DETAILS_STORAGE = "coleridge-customer-details-v1";
 
 interface CheckoutForm {
   fullName: string;
@@ -27,9 +28,37 @@ const empty: CheckoutForm = {
   notes: "",
 };
 
+const readRememberedDetails = (): CheckoutForm => {
+  if (typeof window === "undefined") return empty;
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(CUSTOMER_DETAILS_STORAGE) ?? "null");
+    if (!saved || typeof saved !== "object") return empty;
+    return {
+      fullName: typeof saved.fullName === "string" ? saved.fullName : "",
+      phone: typeof saved.phone === "string" ? saved.phone : "",
+      email: typeof saved.email === "string" ? saved.email : "",
+      company: typeof saved.company === "string" ? saved.company : "",
+      fulfilment: saved.fulfilment === "delivery" ? "delivery" : "collection",
+      address: typeof saved.address === "string" ? saved.address : "",
+      notes: "",
+    };
+  } catch {
+    return empty;
+  }
+};
+
+const formatPackBreakdown = (packs: number[], unit: "kg" | "each") => {
+  const counts = new Map<number, number>();
+  packs.forEach((pack) => counts.set(pack, (counts.get(pack) ?? 0) + 1));
+  return Array.from(counts.entries())
+    .map(([pack, count]) => `${formatQty(pack, unit)}${count > 1 ? ` x ${count}` : ""}`)
+    .join(" + ");
+};
+
 export const CheckoutModal: React.FC = () => {
   const { isCheckoutOpen, closeCheckout, items, subtotal } = useCart();
-  const [form, setForm] = useState<CheckoutForm>(empty);
+  const [form, setForm] = useState<CheckoutForm>(readRememberedDetails);
+  const [rememberDetails, setRememberDetails] = useState(true);
   const [errors, setErrors] = useState<Partial<Record<keyof CheckoutForm, string>>>({});
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
 
@@ -72,7 +101,10 @@ export const CheckoutModal: React.FC = () => {
       .map((line) => {
         const pricing = getLinePricing(line.product, line.qty);
         const special = pricing.isSpecial ? ` _(${pricing.special?.campaignTitle || "Special"})_` : "";
-        return `- *${formatProductName(line.product.name)}* - ${formatQty(line.qty, line.product.unit)} @ ${pricing.unitPrice === 0 && line.product.priceLabel ? line.product.priceLabel : formatZAR(pricing.unitPrice)} = ${pricing.unitPrice === 0 && line.product.priceLabel ? "To confirm" : formatZAR(pricing.lineTotal)}${special}`;
+        const packs = getCartLinePacks(line);
+        const packDetail = packs.length ? `\n  Packs: ${formatPackBreakdown(packs, line.product.unit)}` : "";
+        const packingNote = line.customerNote?.trim() ? `\n  Packing note: ${line.customerNote.trim().replace(/\s+/g, " ")}` : "";
+        return `- *${formatProductName(line.product.name)}* - ${formatQty(line.qty, line.product.unit)} @ ${pricing.unitPrice === 0 && line.product.priceLabel ? line.product.priceLabel : formatZAR(pricing.unitPrice)} = ${pricing.unitPrice === 0 && line.product.priceLabel ? "To confirm" : formatZAR(pricing.lineTotal)}${special}${packDetail}${packingNote}`;
       })
       .join("\n");
 
@@ -118,6 +150,18 @@ _No payment is taken online. Please confirm this order and we will finalize the 
     setStatus("submitting");
 
     try {
+      if (rememberDetails) {
+        window.localStorage.setItem(CUSTOMER_DETAILS_STORAGE, JSON.stringify({
+          fullName: form.fullName.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim(),
+          company: form.company.trim(),
+          fulfilment: form.fulfilment,
+          address: form.address.trim(),
+        }));
+      } else {
+        window.localStorage.removeItem(CUSTOMER_DETAILS_STORAGE);
+      }
       const body = buildOrderSummary();
       const whatsappUrl = `https://wa.me/${BUSINESS_WHATSAPP_NUMBER}?text=${encodeURIComponent(body)}`;
       const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
@@ -136,7 +180,7 @@ _No payment is taken online. Please confirm this order and we will finalize the 
     closeCheckout();
     window.setTimeout(() => {
       setStatus("idle");
-      setForm(empty);
+      setForm(readRememberedDetails());
       setErrors({});
     }, 400);
   };
@@ -228,6 +272,7 @@ _No payment is taken online. Please confirm this order and we will finalize the 
                           Full Name *
                         </label>
                         <input
+                          autoComplete="name"
                           value={form.fullName}
                           onChange={(event) => update("fullName", event.target.value)}
                           className={`${inputBase} ${errors.fullName ? inputErr : inputOk}`}
@@ -242,6 +287,8 @@ _No payment is taken online. Please confirm this order and we will finalize the 
                           Phone *
                         </label>
                         <input
+                          type="tel"
+                          autoComplete="tel"
                           value={form.phone}
                           onChange={(event) => update("phone", event.target.value)}
                           className={`${inputBase} ${errors.phone ? inputErr : inputOk}`}
@@ -260,6 +307,7 @@ _No payment is taken online. Please confirm this order and we will finalize the 
                         </label>
                         <input
                           type="email"
+                          autoComplete="email"
                           value={form.email}
                           onChange={(event) => update("email", event.target.value)}
                           className={`${inputBase} ${errors.email ? inputErr : inputOk}`}
@@ -274,6 +322,7 @@ _No payment is taken online. Please confirm this order and we will finalize the 
                           Company (optional)
                         </label>
                         <input
+                          autoComplete="organization"
                           value={form.company}
                           onChange={(event) => update("company", event.target.value)}
                           className={`${inputBase} ${inputOk}`}
@@ -320,6 +369,7 @@ _No payment is taken online. Please confirm this order and we will finalize the 
                           Delivery Address *
                         </label>
                         <input
+                          autoComplete="street-address"
                           value={form.address}
                           onChange={(event) => update("address", event.target.value)}
                           className={`${inputBase} ${errors.address ? inputErr : inputOk}`}
@@ -330,6 +380,14 @@ _No payment is taken online. Please confirm this order and we will finalize the 
                         )}
                       </div>
                     )}
+
+                    <label className="flex cursor-pointer items-start gap-3 rounded-sm border border-stone-800 bg-stone-950/55 p-4">
+                      <input type="checkbox" checked={rememberDetails} onChange={(event) => setRememberDetails(event.target.checked)} className="mt-0.5 h-4 w-4 accent-burgundy-700" />
+                      <span>
+                        <span className="block text-sm font-medium text-stone-200">Remember my details on this device</span>
+                        <span className="mt-1 block text-xs leading-5 text-stone-500">Your contact and delivery details stay in this browser so the next order is quicker.</span>
+                      </span>
+                    </label>
 
                     <div>
                       <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-stone-400">
@@ -351,15 +409,15 @@ _No payment is taken online. Please confirm this order and we will finalize the 
                       <ul className="space-y-1.5 text-sm">
                         {items.map((line) => {
                           const pricing = getLinePricing(line.product, line.qty);
+                          const packs = getCartLinePacks(line);
                           return (
                           <li key={line.product.id} className="flex justify-between gap-3 text-stone-300">
-                            <span className="truncate">
-                              {formatQty(line.qty, line.product.unit)} - {formatProductName(line.product.name)}
-                              {pricing.isSpecial && <span className="ml-2 text-[10px] uppercase tracking-wider text-emerald-300">Special</span>}
+                            <span className="min-w-0">
+                              <span className="block truncate">{formatQty(line.qty, line.product.unit)} - {formatProductName(line.product.name)}{pricing.isSpecial && <span className="ml-2 text-[10px] uppercase tracking-wider text-emerald-300">Special</span>}</span>
+                              {packs.length ? <span className="mt-1 block text-xs text-stone-500">{formatPackBreakdown(packs, line.product.unit)}</span> : null}
+                              {line.customerNote?.trim() ? <span className="mt-1 block text-xs italic text-stone-500">{line.customerNote.trim()}</span> : null}
                             </span>
-                            <span className="shrink-0 text-stone-400">
-                              {formatZAR(pricing.lineTotal)}
-                            </span>
+                            <span className="shrink-0 text-stone-400">{formatZAR(pricing.lineTotal)}</span>
                           </li>
                           );
                         })}

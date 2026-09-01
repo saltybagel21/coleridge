@@ -9,7 +9,30 @@ export interface CartLine {
   product: Product;
   qty: number;
   orderType: OrderType;
+  packs?: number[];
+  customerNote?: string;
 }
+
+const quantitiesMatch = (left: number, right: number) => Math.abs(left - right) < 0.0001;
+
+const sumPacks = (packs: number[]) =>
+  Number(packs.reduce((total, pack) => total + pack, 0).toFixed(3));
+
+const normaliseLinePacks = (product: Product, line: Pick<CartLine, "qty" | "packs">) => {
+  const options = getQuantityRules(product).options;
+  if (!options?.length) return undefined;
+
+  const validPacks = (line.packs ?? []).filter((pack) =>
+    options.some((option) => quantitiesMatch(option, pack)),
+  );
+  if (validPacks.length) return validPacks;
+
+  const matchingPack = options.find((option) => quantitiesMatch(option, line.qty));
+  return [matchingPack ?? options[0]];
+};
+
+export const getCartLinePacks = (line: CartLine) =>
+  normaliseLinePacks(line.product, line) ?? [];
 
 export const getLinePricing = (product: Product, qty: number) => {
   const resolved = resolveProductPrice(product, qty);
@@ -25,6 +48,9 @@ interface CartState {
   setOrderType: (t: OrderType) => void;
   add: (p: Product, orderType: OrderType, qty?: number) => void;
   setQty: (id: string, qty: number) => void;
+  addPack: (id: string, pack: number) => void;
+  removePack: (id: string, pack: number) => void;
+  setLineNote: (id: string, note: string) => void;
   remove: (id: string) => void;
   syncProducts: (products: Product[]) => void;
   clear: () => void;
@@ -70,14 +96,26 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const add: CartState["add"] = (p, ot, qty = 1) => {
     setItems(prev => {
+      const rules = getQuantityRules(p);
+      const pack = rules.options?.find((option) => quantitiesMatch(option, qty)) ?? rules.options?.[0];
       const existing = prev.find(l => l.product.id === p.id);
       if (existing) {
-        const hasSpecificOptions = Boolean(getQuantityRules(p).options?.length);
+        if (pack != null) {
+          const packs = [...(normaliseLinePacks(p, existing) ?? []), pack];
+          const nextQty = sumPacks(packs);
+          if (rules.maxQty != null && nextQty > rules.maxQty) return prev;
+          return prev.map((line) =>
+            line.product.id === p.id ? { ...line, product: p, packs, qty: nextQty } : line,
+          );
+        }
         return prev.map(l =>
           l.product.id === p.id
-            ? { ...l, product: p, qty: sanitizeProductQuantity(p, hasSpecificOptions ? qty : l.qty + qty) }
+            ? { ...l, product: p, qty: sanitizeProductQuantity(p, l.qty + qty) }
             : l
         );
+      }
+      if (pack != null) {
+        return [...prev, { product: p, qty: pack, packs: [pack], orderType: ot }];
       }
       return [...prev, { product: p, qty: sanitizeProductQuantity(p, qty), orderType: ot }];
     });
@@ -99,6 +137,35 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setItems(prev => prev.filter(l => l.product.id !== id));
   };
 
+  const addPack: CartState["addPack"] = (id, pack) => {
+    setItems((current) => current.map((line) => {
+      if (line.product.id !== id) return line;
+      const rules = getQuantityRules(line.product);
+      const option = rules.options?.find((candidate) => quantitiesMatch(candidate, pack));
+      if (option == null) return line;
+      const packs = [...(normaliseLinePacks(line.product, line) ?? []), option];
+      const qty = sumPacks(packs);
+      return rules.maxQty != null && qty > rules.maxQty ? line : { ...line, packs, qty };
+    }));
+  };
+
+  const removePack: CartState["removePack"] = (id, pack) => {
+    setItems((current) => current.flatMap((line) => {
+      if (line.product.id !== id) return [line];
+      const packs = normaliseLinePacks(line.product, line) ?? [];
+      const removeIndex = packs.findIndex((candidate) => quantitiesMatch(candidate, pack));
+      if (removeIndex < 0) return [line];
+      const nextPacks = packs.filter((_, index) => index !== removeIndex);
+      return nextPacks.length ? [{ ...line, packs: nextPacks, qty: sumPacks(nextPacks) }] : [];
+    }));
+  };
+
+  const setLineNote: CartState["setLineNote"] = (id, note) => {
+    setItems((current) => current.map((line) =>
+      line.product.id === id ? { ...line, customerNote: note.slice(0, 240) } : line,
+    ));
+  };
+
   const syncProducts = useCallback<CartState["syncProducts"]>((products) => {
     const latest = new Map<string, Product>(
       products.map((product): [string, Product] => [product.id, product]),
@@ -107,7 +174,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       current.flatMap((line) => {
         const product = latest.get(line.product.id);
         if (!product) return [];
-        return [{ ...line, product, qty: sanitizeProductQuantity(product, line.qty) }];
+        const packs = normaliseLinePacks(product, line);
+        return [{
+          ...line,
+          product,
+          qty: packs ? sumPacks(packs) : sanitizeProductQuantity(product, line.qty),
+          ...(packs ? { packs } : { packs: undefined }),
+        }];
       }),
     );
   }, []);
@@ -122,7 +195,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value: CartState = {
     items, orderType, setOrderType: handleSetOrderType,
-    add, setQty, remove, syncProducts, clear,
+    add, setQty, addPack, removePack, setLineNote, remove, syncProducts, clear,
     subtotal, count,
     isOpen, openCart: () => setOpen(true), closeCart: () => setOpen(false),
     isCheckoutOpen,

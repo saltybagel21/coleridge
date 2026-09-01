@@ -263,14 +263,10 @@ const SpecialsManager: React.FC = () => {
             return `${product?.name ?? "This product"} has a minimum order of ${rules.minQty} ${product?.unit === "kg" ? "kg" : "items"}.`;
           }
           if (rules && !isQuantityOnStep(tier.minQty, rules)) {
-            return rules.options?.length
-              ? `${product?.name ?? "This product"} must use one of its configured order quantities.`
-              : `${product?.name ?? "This product"} quantities move in steps of ${rules.step}.`;
+            return `${product?.name ?? "This product"} quantities move in steps of ${rules.step}.`;
           }
           if (rules && tier.maxQty != null && !isQuantityOnStep(tier.maxQty, rules)) {
-            return rules.options?.length
-              ? `${product?.name ?? "This product"} tier limits must use one of its configured order quantities.`
-              : `${product?.name ?? "This product"} tier limits must follow its ${rules.step} quantity step.`;
+            return `${product?.name ?? "This product"} tier limits must follow its ${rules.step} quantity step.`;
           }
           if (tier.minQty != null && tier.maxQty != null && tier.minQty >= tier.maxQty) {
             return `A tier maximum must be above its minimum for ${product?.name ?? "the offer"}.`;
@@ -333,7 +329,7 @@ const SpecialsManager: React.FC = () => {
     const rules = product ? getQuantityRules(product) : { minQty: 1, step: 1 };
     const preferredThreshold = product?.unit === "each" ? 10 : 3;
     const thresholdSteps = Math.max(1, Math.ceil((preferredThreshold - rules.minQty) / rules.step));
-    const threshold = rules.options?.[1] ?? Number((rules.minQty + thresholdSteps * rules.step).toFixed(3));
+    const threshold = Number((rules.minQty + thresholdSteps * rules.step).toFixed(3));
     updateItem(item.productId, (current) => ({
       ...current,
       pricingMode: mode,
@@ -342,12 +338,10 @@ const SpecialsManager: React.FC = () => {
         mode === "tiered"
           ? current.tiers.length
             ? current.tiers
-            : rules.options?.length === 1
-              ? [{ id: makeId(), minQty: rules.minQty, maxQty: null, price: product?.price ?? 0 }]
-              : [
-                  { id: makeId(), minQty: rules.minQty, maxQty: threshold, price: product?.price ?? 0 },
-                  { id: makeId(), minQty: threshold, maxQty: null, price: product?.price ?? 0 },
-                ]
+            : [
+                { id: makeId(), minQty: rules.minQty, maxQty: threshold, price: product?.price ?? 0 },
+                { id: makeId(), minQty: threshold, maxQty: null, price: product?.price ?? 0 },
+              ]
           : [],
     }));
   };
@@ -367,10 +361,7 @@ const SpecialsManager: React.FC = () => {
         const rules = product ? getQuantityRules(product) : { minQty: 1, step: 1 };
         const tiers = current.tiers.slice();
         const last = tiers[tiers.length - 1];
-        const start = rules.options?.length
-          ? last?.maxQty ?? rules.options.find((option) => option > (last?.minQty ?? -Infinity)) ?? rules.options[0]
-          : Number(((last?.maxQty ?? last?.minQty ?? rules.minQty) + (last?.maxQty == null && last ? rules.step : 0)).toFixed(3));
-        if (last && rules.options?.length && start <= (last.minQty ?? -Infinity)) return tiers;
+        const start = Number(((last?.maxQty ?? last?.minQty ?? rules.minQty) + (last?.maxQty == null && last ? rules.step : 0)).toFixed(3));
         if (last && last.maxQty == null) tiers[tiers.length - 1] = { ...last, maxQty: start };
         return [...tiers, { id: makeId(), minQty: start, maxQty: null, price: product?.price ?? 0 }];
       })(),
@@ -731,7 +722,7 @@ const SpecialsManager: React.FC = () => {
                         <div className="flex items-start gap-3">
                           <div className="flex shrink-0 flex-col gap-1"><button type="button" disabled={index === 0} onClick={() => moveItem(index, -1)} className="flex h-7 w-7 items-center justify-center rounded border border-stone-700 text-stone-500 disabled:opacity-25"><ArrowUp size={12} /></button><button type="button" disabled={index === form.items.length - 1} onClick={() => moveItem(index, 1)} className="flex h-7 w-7 items-center justify-center rounded border border-stone-700 text-stone-500 disabled:opacity-25"><ArrowDown size={12} /></button></div>
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-3"><div><div className="font-medium text-stone-100">{product.name}</div><div className="mt-1 text-[11px] text-stone-500">Normal: {product.price > 0 ? `${formatSpecialMoney(product.price)}/${product.unit}` : product.priceLabel} | {quantityRules.options?.length ? `Order quantities: ${quantityRules.options.join(", ")}` : `Minimum ${quantityRules.minQty} ${product.unit === "kg" ? "kg" : quantityRules.minQty === 1 ? "item" : "items"} | Steps of ${quantityRules.step}`}</div></div><button type="button" onClick={() => toggleProduct(product)} title="Remove offer" className="flex h-8 w-8 items-center justify-center text-stone-600 hover:text-red-300"><Trash2 size={14} /></button></div>
+                            <div className="flex items-start justify-between gap-3"><div><div className="font-medium text-stone-100">{product.name}</div><div className="mt-1 text-[11px] text-stone-500">Normal: {product.price > 0 ? `${formatSpecialMoney(product.price)}/${product.unit}` : product.priceLabel} | {quantityRules.options?.length ? `Pack sizes: ${quantityRules.options.join(", ")} | Combined totals move in steps of ${quantityRules.step}` : `Minimum ${quantityRules.minQty} ${product.unit === "kg" ? "kg" : quantityRules.minQty === 1 ? "item" : "items"} | Steps of ${quantityRules.step}`}</div></div><button type="button" onClick={() => toggleProduct(product)} title="Remove offer" className="flex h-8 w-8 items-center justify-center text-stone-600 hover:text-red-300"><Trash2 size={14} /></button></div>
                             <label className="mt-3 block"><span className={labelClass}>Name shown in the special</span><input value={item.displayName} onChange={(event) => updateItem(item.productId, (current) => ({ ...current, displayName: event.target.value }))} className={inputClass} /></label>
                             <div className="mt-3 inline-flex rounded-md border border-stone-700 bg-stone-950 p-1"><button type="button" onClick={() => setPricingMode(item, "fixed")} className={`h-8 rounded px-3 text-xs font-semibold ${item.pricingMode === "fixed" ? "bg-burgundy-700 text-white" : "text-stone-500"}`}>Fixed price</button><button type="button" onClick={() => setPricingMode(item, "tiered")} className={`h-8 rounded px-3 text-xs font-semibold ${item.pricingMode === "tiered" ? "bg-burgundy-700 text-white" : "text-stone-500"}`}>Quantity breaks</button></div>
                             {item.pricingMode === "fixed" ? (
@@ -741,13 +732,13 @@ const SpecialsManager: React.FC = () => {
                                 <div className="hidden grid-cols-[1fr_1fr_1fr_36px] gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-stone-500 sm:grid"><span>Starting quantity</span><span>Until (optional)</span><span>Price per {product.unit}</span><span /></div>
                                 {item.tiers.map((tier) => (
                                   <div key={tier.id} className="grid grid-cols-[1fr_1fr_1fr_36px] gap-2">
-                                    <label className="min-w-0"><span className="mb-1 block text-[8px] font-semibold uppercase tracking-[0.12em] text-stone-600 sm:hidden">From</span>{quantityRules.options?.length ? <select value={tier.minQty ?? ""} onChange={(event) => updateTier(item.productId, tier.id, { minQty: numericValue(event.target.value) })} aria-label={`Tier minimum for ${item.displayName}`} className={inputClass}>{quantityRules.options.map((option) => <option key={option} value={option}>{option}</option>)}</select> : <input type="number" min={quantityRules.minQty} step={quantityRules.step} value={tier.minQty ?? ""} onChange={(event) => updateTier(item.productId, tier.id, { minQty: numericValue(event.target.value) })} aria-label={`Tier minimum for ${item.displayName}`} className={inputClass} placeholder={`Min ${quantityRules.minQty}`} />}</label>
-                                    <label className="min-w-0"><span className="mb-1 block text-[8px] font-semibold uppercase tracking-[0.12em] text-stone-600 sm:hidden">Until</span>{quantityRules.options?.length ? <select value={tier.maxQty ?? ""} onChange={(event) => updateTier(item.productId, tier.id, { maxQty: numericValue(event.target.value) })} aria-label={`Tier maximum for ${item.displayName}`} className={inputClass}><option value="">Open</option>{quantityRules.options.filter((option) => option > (tier.minQty ?? -Infinity)).map((option) => <option key={option} value={option}>{option}</option>)}</select> : <input type="number" min={quantityRules.minQty} step={quantityRules.step} value={tier.maxQty ?? ""} onChange={(event) => updateTier(item.productId, tier.id, { maxQty: numericValue(event.target.value) })} aria-label={`Tier maximum for ${item.displayName}`} className={inputClass} placeholder="Open" />}</label>
+                                    <label className="min-w-0"><span className="mb-1 block text-[8px] font-semibold uppercase tracking-[0.12em] text-stone-600 sm:hidden">From</span><input type="number" min={quantityRules.minQty} step={quantityRules.step} value={tier.minQty ?? ""} onChange={(event) => updateTier(item.productId, tier.id, { minQty: numericValue(event.target.value) })} aria-label={`Tier minimum for ${item.displayName}`} className={inputClass} placeholder={`Min ${quantityRules.minQty}`} /></label>
+                                    <label className="min-w-0"><span className="mb-1 block text-[8px] font-semibold uppercase tracking-[0.12em] text-stone-600 sm:hidden">Until</span><input type="number" min={quantityRules.minQty} step={quantityRules.step} value={tier.maxQty ?? ""} onChange={(event) => updateTier(item.productId, tier.id, { maxQty: numericValue(event.target.value) })} aria-label={`Tier maximum for ${item.displayName}`} className={inputClass} placeholder="Open" /></label>
                                     <label className="min-w-0"><span className="mb-1 block text-[8px] font-semibold uppercase tracking-[0.12em] text-stone-600 sm:hidden">Price</span><input type="number" min="0.01" step="0.01" value={tier.price || ""} onChange={(event) => updateTier(item.productId, tier.id, { price: numericValue(event.target.value) ?? 0 })} aria-label={`Tier price for ${item.displayName}`} className={inputClass} placeholder="R" /></label>
                                     <button type="button" onClick={() => removeTier(item.productId, tier.id)} title="Remove tier" className="mt-[17px] flex h-[42px] w-9 items-center justify-center rounded-md border border-stone-700 text-stone-500 hover:text-red-300 sm:mt-0"><X size={13} /></button>
                                   </div>
                                 ))}
-                                <button type="button" onClick={() => addTier(item)} disabled={Boolean(quantityRules.options?.length && item.tiers.length >= quantityRules.options.length)} className="inline-flex h-9 items-center gap-2 text-xs font-semibold text-burgundy-300 hover:text-white disabled:cursor-default disabled:opacity-35"><Plus size={13} /> Add another tier</button>
+                                <button type="button" onClick={() => addTier(item)} className="inline-flex h-9 items-center gap-2 text-xs font-semibold text-burgundy-300 hover:text-white"><Plus size={13} /> Add another tier</button>
                               </div>
                             )}
                           </div>

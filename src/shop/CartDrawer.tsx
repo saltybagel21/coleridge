@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
+import { X, Minus, Plus, Trash2, ShoppingBag, ArrowLeft, ArrowRight } from "lucide-react";
 import { formatTierRange } from "../shared/specials";
-import { useCart, getLinePricing, getQuantityRules, formatProductName, formatQty, formatZAR } from "./CartContext";
+import { useCart, getCartLinePacks, getLinePricing, getQuantityRules, formatProductName, formatQty, formatZAR } from "./CartContext";
 
 const QuantityInput: React.FC<{
   id: string;
@@ -10,11 +10,9 @@ const QuantityInput: React.FC<{
   minQty: number;
   maxQty?: number;
   step: number;
-  options?: number[];
-  unit: "kg" | "each";
   setQty: (id: string, qty: number) => void;
   remove: (id: string) => void;
-}> = ({ id, qty, minQty, maxQty, step, options, unit, setQty, remove }) => {
+}> = ({ id, qty, minQty, maxQty, step, setQty, remove }) => {
   const [draft, setDraft] = useState(String(qty));
 
   useEffect(() => setDraft(String(qty)), [qty]);
@@ -31,21 +29,6 @@ const QuantityInput: React.FC<{
     }
     setQty(id, value);
   };
-
-  if (options?.length) {
-    return (
-      <select
-        value={qty}
-        onChange={(event) => setQty(id, Number(event.target.value))}
-        aria-label="Order quantity"
-        className="h-8 w-28 bg-stone-950 px-2 text-center text-xs text-stone-100 focus:outline-none"
-      >
-        {options.map((option) => (
-          <option key={option} value={option}>{formatQty(option, unit)}</option>
-        ))}
-      </select>
-    );
-  }
 
   return (
     <input
@@ -75,6 +58,9 @@ export const CartDrawer: React.FC = () => {
     isOpen,
     closeCart,
     setQty,
+    addPack,
+    removePack,
+    setLineNote,
     remove,
     clear,
     subtotal,
@@ -143,26 +129,15 @@ export const CartDrawer: React.FC = () => {
                     const isKg = line.product.unit === "kg";
                     const { step, minQty, maxQty, options } = getQuantityRules(line.product);
                     const pricing = getLinePricing(line.product, line.qty);
-                    const optionIndex = options?.findIndex((option) => Math.abs(option - line.qty) < 0.0001) ?? -1;
+                    const packs = getCartLinePacks(line);
 
                     const decrement = () => {
-                      if (options?.length) {
-                        if (optionIndex <= 0) remove(line.product.id);
-                        else setQty(line.product.id, options[optionIndex - 1]);
-                        return;
-                      }
                       const next = parseFloat((line.qty - step).toFixed(3));
                       if (next < minQty) remove(line.product.id);
                       else setQty(line.product.id, next);
                     };
 
                     const increment = () => {
-                      if (options?.length) {
-                        if (optionIndex >= 0 && optionIndex < options.length - 1) {
-                          setQty(line.product.id, options[optionIndex + 1]);
-                        }
-                        return;
-                      }
                       const next = parseFloat((line.qty + step).toFixed(3));
                       setQty(line.product.id, maxQty ? Math.min(maxQty, next) : next);
                     };
@@ -192,8 +167,8 @@ export const CartDrawer: React.FC = () => {
                             ) : null}
                           </div>
                           {options?.length ? (
-                            <div className="mb-3 text-[10px] font-semibold uppercase leading-4 tracking-[0.12em] text-stone-600">
-                              Order sizes: {options.map((option) => formatQty(option, line.product.unit)).join(" / ")}
+                            <div className="mb-3 text-[10px] font-semibold uppercase leading-4 tracking-[0.12em] text-stone-500">
+                              Combined quantity: {formatQty(line.qty, line.product.unit)}
                             </div>
                           ) : null}
                           {pricing.isSpecial && (
@@ -217,46 +192,46 @@ export const CartDrawer: React.FC = () => {
                               Out of stock - remove before checkout
                             </div>
                           )}
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center rounded-sm border border-stone-800">
-                              <button
-                                onClick={decrement}
-                                aria-label="Decrease"
-                                className="flex h-8 w-8 items-center justify-center text-stone-400 transition-colors hover:bg-stone-900 hover:text-stone-100"
-                              >
-                                <Minus size={14} />
-                              </button>
-                              <QuantityInput
-                                id={line.product.id}
-                                qty={line.qty}
-                                minQty={minQty}
-                                maxQty={maxQty}
-                                step={step}
-                                options={options}
-                                unit={line.product.unit}
-                                setQty={setQty}
-                                remove={remove}
-                              />
-                              <button
-                                onClick={increment}
-                                disabled={Boolean(options?.length && optionIndex === options.length - 1)}
-                                aria-label="Increase"
-                                className="flex h-8 w-8 items-center justify-center text-stone-400 transition-colors hover:bg-stone-900 hover:text-stone-100 disabled:cursor-default disabled:opacity-25"
-                              >
-                                <Plus size={14} />
-                              </button>
+                          {options?.length ? (
+                            <div className="mb-3 grid gap-2">
+                              {options.map((option) => {
+                                const packCount = packs.filter((pack) => Math.abs(pack - option) < 0.0001).length;
+                                const atMaximum = maxQty != null && line.qty + option > maxQty;
+                                return (
+                                  <div key={option} className="flex h-9 items-center justify-between rounded-md border border-stone-800 bg-stone-950/70 pl-3">
+                                    <span className="text-xs font-medium text-stone-300">{formatQty(option, line.product.unit)} pack</span>
+                                    <div className="flex h-full items-center">
+                                      <button type="button" onClick={() => removePack(line.product.id, option)} disabled={packCount === 0} aria-label={`Remove one ${formatQty(option, line.product.unit)} pack`} className="flex h-full w-9 items-center justify-center text-stone-400 hover:bg-stone-900 hover:text-white disabled:cursor-default disabled:opacity-20"><Minus size={13} /></button>
+                                      <span className="w-8 text-center text-xs font-semibold text-stone-100" aria-label={`${packCount} selected`}>{packCount}</span>
+                                      <button type="button" onClick={() => addPack(line.product.id, option)} disabled={atMaximum} aria-label={`Add another ${formatQty(option, line.product.unit)} pack`} className="flex h-full w-9 items-center justify-center text-stone-400 hover:bg-stone-900 hover:text-white disabled:cursor-default disabled:opacity-20"><Plus size={13} /></button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
-                            {!options?.length ? (
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center rounded-sm border border-stone-800">
+                                <button onClick={decrement} aria-label="Decrease" className="flex h-8 w-8 items-center justify-center text-stone-400 transition-colors hover:bg-stone-900 hover:text-stone-100"><Minus size={14} /></button>
+                                <QuantityInput id={line.product.id} qty={line.qty} minQty={minQty} maxQty={maxQty} step={step} setQty={setQty} remove={remove} />
+                                <button onClick={increment} aria-label="Increase" className="flex h-8 w-8 items-center justify-center text-stone-400 transition-colors hover:bg-stone-900 hover:text-stone-100"><Plus size={14} /></button>
+                              </div>
                               <span className="text-[10px] uppercase tracking-widest text-stone-500">
                                 {isKg ? "kg" : "items"}
                               </span>
-                            ) : null}
+                            </div>
+                          )}
+                          <label className="mt-3 block">
+                            <span className="mb-1.5 block text-[9px] font-semibold uppercase tracking-[0.16em] text-stone-500">Packing note (optional)</span>
+                            <textarea value={line.customerNote ?? ""} onChange={(event) => setLineNote(line.product.id, event.target.value)} maxLength={240} rows={2} placeholder={isKg ? "e.g. Pack separately in 1 kg bags" : "e.g. Pack separately"} className="w-full resize-none rounded-md border border-stone-800 bg-stone-950 px-3 py-2 text-xs leading-5 text-stone-200 placeholder:text-stone-700 focus:border-burgundy-700 focus:outline-none" />
+                          </label>
+                          <div className="mt-3 flex justify-end">
                             <button
                               onClick={() => remove(line.product.id)}
                               aria-label="Remove"
-                              className="ml-auto text-stone-500 transition-colors hover:text-burgundy-500"
+                              className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500 transition-colors hover:text-burgundy-400"
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={14} /> Remove item
                             </button>
                           </div>
                         </div>
@@ -289,6 +264,12 @@ export const CartDrawer: React.FC = () => {
                   className="flex w-full items-center justify-center gap-2 rounded-sm bg-burgundy-800 py-4 text-xs font-semibold uppercase tracking-widest text-stone-100 transition-colors hover:bg-burgundy-700 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   Proceed to Checkout <ArrowRight size={14} />
+                </button>
+                <button
+                  onClick={closeCart}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-sm border border-stone-700 py-3 text-[11px] font-semibold uppercase tracking-widest text-stone-300 transition-colors hover:bg-stone-900 hover:text-white"
+                >
+                  <ArrowLeft size={14} /> Continue Shopping
                 </button>
                 <button
                   onClick={clear}

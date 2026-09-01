@@ -779,7 +779,7 @@ const CatalogueAdmin: React.FC = () => {
                 <div><label className={labelClass}>Display order</label><input type="number" min="0" step="1" value={draft.sortOrder ?? ""} onChange={(event) => updateDraft("sortOrder", event.target.value === "" ? undefined : Number(event.target.value))} className={inputClass} /></div>
               </div>
               <div>
-                <label htmlFor="specific-order-quantities" className={labelClass}>Specific order quantities (optional)</label>
+                <label htmlFor="specific-order-quantities" className={labelClass}>Pack sizes customers can combine (optional)</label>
                 <input
                   id="specific-order-quantities"
                   value={quantityOptionsText}
@@ -788,6 +788,7 @@ const CatalogueAdmin: React.FC = () => {
                   inputMode="decimal"
                   className={inputClass}
                 />
+                <p className="mt-2 text-xs leading-5 text-stone-500">Enter sizes such as 0.5, 1, 2, 5. A customer can combine packs, for example 5 kg + 2 kg.</p>
                 {parsedQuantityOptions.quantities?.length ? (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {parsedQuantityOptions.quantities.map((quantity) => (

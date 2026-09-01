@@ -8,6 +8,7 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
+  MoveHorizontal,
   Search,
   Check,
   ShieldCheck,
@@ -313,7 +314,7 @@ const getOrderMeta = (product: Product) => {
   const rules = getQuantityRules(product);
 
   if (rules.options?.length) {
-    return rules.options.length === 1 ? formatQty(rules.options[0], product.unit) : `${rules.options.length} order sizes`;
+    return rules.options.length === 1 ? `${formatQty(rules.options[0], product.unit)} pack` : `${rules.options.length} pack sizes`;
   }
 
   if (rules.maxQty != null) {
@@ -1304,7 +1305,7 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
             <div className="flex min-h-full items-center justify-center">
               <motion.div role="dialog" aria-modal="true" aria-labelledby={`quantity-picker-title-${product.id}`} className="w-full max-w-md rounded-lg border border-stone-700 bg-stone-950 p-5 shadow-2xl sm:p-7" initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.98 }} onClick={(event) => event.stopPropagation()}>
                 <div className="flex items-start justify-between gap-4">
-                  <div><div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-burgundy-300">Choose order quantity</div><h3 id={`quantity-picker-title-${product.id}`} className="mt-2 font-serif text-3xl text-stone-100">{formatProductName(product.name)}</h3></div>
+                  <div><div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-burgundy-300">Choose a pack size</div><h3 id={`quantity-picker-title-${product.id}`} className="mt-2 font-serif text-3xl text-stone-100">{formatProductName(product.name)}</h3><p className="mt-2 text-sm leading-6 text-stone-500">Add one pack now, then combine more sizes from your cart.</p></div>
                   <button type="button" onClick={() => setShowQuantityPicker(false)} aria-label="Close quantity picker" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-stone-700 text-stone-400 hover:bg-stone-900 hover:text-white"><X size={17} /></button>
                 </div>
                 <div className="mt-6 grid gap-2">
@@ -1312,7 +1313,7 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
                     const pricing = getLinePricing(product, option);
                     return (
                       <button key={option} type="button" onClick={() => addQuantity(option)} className="flex min-h-14 items-center justify-between gap-4 rounded-md border border-stone-700 bg-stone-900/55 px-4 text-left transition-colors hover:border-burgundy-600 hover:bg-stone-900">
-                        <strong className="text-base text-stone-100">{formatQty(option, product.unit)}</strong>
+                        <strong className="text-base text-stone-100">Add {formatQty(option, product.unit)} pack</strong>
                         <span className="text-sm text-stone-400">{pricing.unitPrice === 0 && product.priceLabel ? "Total to confirm" : `${formatZAR(pricing.lineTotal)} total`}</span>
                       </button>
                     );
@@ -1696,7 +1697,12 @@ export const ShopGrid: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-10">
+        <div id="shop-products-start" className="mt-10 scroll-mt-24">
+          <div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+            <MoveHorizontal size={15} className="text-burgundy-400" />
+            <span className="sm:hidden">Swipe across to explore all meat categories</span>
+            <span className="hidden sm:inline">Scroll across to explore our full selection of meat categories</span>
+          </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -1704,7 +1710,7 @@ export const ShopGrid: React.FC = () => {
               disabled={!categoryScroll.canBack}
               title="Previous categories"
               aria-label="Scroll to previous categories"
-              className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border border-stone-700 bg-stone-900 text-stone-200 transition-colors hover:border-stone-500 hover:bg-stone-800 disabled:cursor-default disabled:opacity-25 md:flex"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-stone-700 bg-stone-900 text-stone-200 transition-colors hover:border-stone-500 hover:bg-stone-800 disabled:cursor-default disabled:opacity-25 sm:h-11 sm:w-11"
             >
               <ChevronLeft size={19} />
             </button>
@@ -1721,7 +1727,7 @@ export const ShopGrid: React.FC = () => {
                 event.preventDefault();
                 scroller.scrollLeft += event.deltaY;
               }}
-              className="min-w-0 flex-1 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              className="min-w-0 flex-1 touch-pan-x overflow-x-auto overscroll-x-contain scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
               <div className="flex min-w-max gap-2">
                 {["All", ...(specialProducts.length ? ["Specials"] : []), ...order].map((category) => {
@@ -1754,12 +1760,12 @@ export const ShopGrid: React.FC = () => {
               disabled={!categoryScroll.canForward}
               title="More categories"
               aria-label="Scroll to more categories"
-              className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border border-stone-700 bg-stone-900 text-stone-200 transition-colors hover:border-stone-500 hover:bg-stone-800 disabled:cursor-default disabled:opacity-25 md:flex"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-stone-700 bg-stone-900 text-stone-200 transition-colors hover:border-stone-500 hover:bg-stone-800 disabled:cursor-default disabled:opacity-25 sm:h-11 sm:w-11"
             >
               <ChevronRight size={19} />
             </button>
           </div>
-          <div className="mx-1 mt-1 h-1 overflow-hidden rounded-full bg-stone-800 md:mx-[52px]" aria-hidden="true">
+          <div className="mx-[48px] mt-1 h-1 overflow-hidden rounded-full bg-stone-800 sm:mx-[52px]" aria-hidden="true">
             <div
               className="h-full rounded-full bg-burgundy-600 transition-[width,transform] duration-150"
               style={{

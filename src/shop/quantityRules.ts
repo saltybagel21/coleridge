@@ -16,13 +16,30 @@ const cleanQuantityOptions = (product: Product) =>
     ),
   ).sort((a, b) => a - b);
 
+const greatestCommonDivisor = (left: number, right: number): number => {
+  let a = Math.abs(left);
+  let b = Math.abs(right);
+  while (b) {
+    const remainder = a % b;
+    a = b;
+    b = remainder;
+  }
+  return a;
+};
+
+const getPackStep = (options: number[]) => {
+  const scaled = options.map((option) => Math.round(option * 1000));
+  const divisor = scaled.reduce(greatestCommonDivisor);
+  return Number((divisor / 1000).toFixed(3));
+};
+
 export const getQuantityRules = (product: Product): QuantityRules => {
   const options = cleanQuantityOptions(product);
   if (options.length) {
     return {
       minQty: options[0],
-      step: options.length > 1 ? Number((options[1] - options[0]).toFixed(3)) : 1,
-      maxQty: options[options.length - 1],
+      step: getPackStep(options),
+      maxQty: product.maxQty,
       options,
     };
   }
@@ -59,23 +76,14 @@ export const getQuantityRules = (product: Product): QuantityRules => {
 };
 
 export const isQuantityOnStep = (quantity: number, rules: QuantityRules) => {
-  if (rules.options?.length) {
-    return rules.options.some((option) => Math.abs(option - quantity) < 0.0001);
-  }
   if (quantity < rules.minQty) return false;
   const steps = (quantity - rules.minQty) / rules.step;
   return Math.abs(steps - Math.round(steps)) < 0.0001;
 };
 
 export const sanitizeProductQuantity = (product: Product, quantity: number) => {
-  const { minQty, step, maxQty, options } = getQuantityRules(product);
+  const { minQty, step, maxQty } = getQuantityRules(product);
   if (!Number.isFinite(quantity)) return minQty;
-
-  if (options?.length) {
-    return options.reduce((closest, option) =>
-      Math.abs(option - quantity) < Math.abs(closest - quantity) ? option : closest,
-    );
-  }
 
   const stepsFromMin = Math.round((quantity - minQty) / step);
   const snapped = minQty + Math.max(0, stepsFromMin) * step;
