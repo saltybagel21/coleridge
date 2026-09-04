@@ -112,7 +112,7 @@ const AdminAuthGate: React.FC<React.PropsWithChildren> = ({ children }) => {
             {state === "checking" ? "Checking your session" : "Sign in securely"}
           </h1>
           <p className="mt-3 text-sm leading-6 text-stone-400">
-            Use the approved Google account for Stefan or Max. This device will stay signed in for up to 30 days.
+            Use the approved owner Google account. This device will stay signed in for up to 30 days.
           </p>
 
           {error ? (
