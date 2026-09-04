@@ -20,6 +20,20 @@ const sessionIsAuthorised = async () => {
   }
 };
 
+const getSignInError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : "Sign-in could not be completed.";
+  if (message.includes("popup-closed-by-user") || message.includes("user-cancelled")) {
+    return "Sign-in was cancelled.";
+  }
+  if (message.includes("popup-blocked")) {
+    return "The Google sign-in window was blocked. Allow pop-ups for this site and try again.";
+  }
+  if (message.includes("network-request-failed")) {
+    return "Google sign-in could not connect. Check the internet connection and try again.";
+  }
+  return message;
+};
+
 const AdminAuthGate: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [state, setState] = useState<GateState>(
     isOwnerRoute() && !isLocalDevelopment() ? "checking" : "authorised",
@@ -70,8 +84,7 @@ const AdminAuthGate: React.FC<React.PropsWithChildren> = ({ children }) => {
       setState("authorised");
     } catch (signInError) {
       await signOut(adminAuth).catch(() => undefined);
-      const message = signInError instanceof Error ? signInError.message : "Sign-in could not be completed.";
-      setError(message.includes("popup-closed-by-user") ? "Sign-in was cancelled." : message);
+      setError(getSignInError(signInError));
       setState("signed-out");
     } finally {
       setBusy(false);
