@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { Product } from "../shop/products";
 import { formatZAR } from "../shop/CartContext";
+import { adminFetch, adminHref, signOutAdmin } from "./auth";
 
 type CatalogueResponse = { products: Product[] };
 type SessionResponse = { authenticated: true; email: string };
@@ -91,10 +92,10 @@ const CatalogueAdmin: React.FC = () => {
     setError("");
     try {
       const [session, catalogue] = await Promise.all([
-        fetch("/admin-api/session", { cache: "no-store" }).then((response) =>
+        adminFetch("/session", { cache: "no-store" }).then((response) =>
           readJson<SessionResponse>(response),
         ),
-        fetch("/admin-api/products", { cache: "no-store" }).then((response) =>
+        adminFetch("/products", { cache: "no-store" }).then((response) =>
           readJson<CatalogueResponse>(response),
         ),
       ]);
@@ -157,8 +158,8 @@ const CatalogueAdmin: React.FC = () => {
   };
 
   const persist = async (product: Product, creating: boolean) => {
-    const response = await fetch(
-      creating ? "/admin-api/products" : `/admin-api/products/${encodeURIComponent(product.id)}`,
+    const response = await adminFetch(
+      creating ? "/products" : `/products/${encodeURIComponent(product.id)}`,
       {
         method: creating ? "POST" : "PATCH",
         headers: { "content-type": "application/json" },
@@ -285,7 +286,7 @@ const CatalogueAdmin: React.FC = () => {
     setReordering(true);
     setError("");
     try {
-      const response = await fetch("/admin-api/products/reorder", {
+      const response = await adminFetch("/products/reorder", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ productIds: reorderedAll.map((product) => product.id) }),
@@ -324,7 +325,7 @@ const CatalogueAdmin: React.FC = () => {
     setRenamingCategory(true);
     setError("");
     try {
-      const response = await fetch("/admin-api/categories/rename", {
+      const response = await adminFetch("/categories/rename", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ currentName: categoryToRename, nextName }),
@@ -365,14 +366,14 @@ const CatalogueAdmin: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <a
-              href="/admin/price-list/"
+              href={adminHref("price-list")}
               title="Create a customer price list"
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-stone-700 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-stone-300 transition-colors hover:bg-stone-900 hover:text-stone-100"
             >
               <FileDown size={16} /> <span className="hidden lg:inline">Price list</span>
             </a>
             <a
-              href="/admin/specials/"
+              href={adminHref("specials")}
               title="WhatsApp specials builder"
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-stone-700 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-stone-300 transition-colors hover:bg-stone-900 hover:text-stone-100"
             >
@@ -386,13 +387,14 @@ const CatalogueAdmin: React.FC = () => {
             >
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             </button>
-            <a
-              href="/cdn-cgi/access/logout"
+            <button
+              type="button"
+              onClick={() => void signOutAdmin()}
               title="Sign out"
               className="flex h-10 w-10 items-center justify-center rounded-md border border-stone-700 text-stone-400 transition-colors hover:bg-stone-900 hover:text-stone-100"
             >
               <LogOut size={16} />
-            </a>
+            </button>
           </div>
         </div>
       </header>

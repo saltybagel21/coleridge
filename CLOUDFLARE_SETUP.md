@@ -1,6 +1,6 @@
 # Cloudflare Pages deployment and owner access
 
-The public site remains a Cloudflare Pages project connected to GitHub. Product data is stored in Cloudflare D1, and Stefan's dashboard is protected by Cloudflare Access.
+The public site remains a Cloudflare Pages project connected to GitHub. Product data is stored in Cloudflare D1, and the current owner dashboard uses Firebase Google sign-in. See `AUTH_RESTORE_GUIDE.md` for the live authentication setup and the preserved Cloudflare Access fallback.
 
 ## 1. Put the project on GitHub
 
@@ -43,7 +43,28 @@ Cloudflare needs these parts of the repository:
 
 The first request to `/api/products` creates the table and seeds all 83 products automatically. The SQL schema is also preserved in `migrations/0001_catalogue.sql`.
 
-## 4. Protect Stefan's dashboard with Cloudflare Access
+## 4. Configure the current owner login
+
+Create or open the Firebase project named `coleridge-admin`, enable the Google sign-in provider, and add the live website hostname under **Authentication** > **Settings** > **Authorized domains**.
+
+In the Pages project open **Settings** > **Variables and Secrets** and add these Production variables:
+
+```text
+FIREBASE_PROJECT_ID=coleridge-admin
+ADMIN_EMAILS=admin@coleridgemeat.co.za,rautenbachmax@gmail.com
+```
+
+The current owner tools are available at:
+
+- Catalogue manager: `/owner/`
+- WhatsApp specials builder: `/owner/specials/`
+- Price-list studio: `/owner/price-list/`
+
+The browser keeps the approved Google account signed in locally, while the server requires a fresh authentication after 30 days. The API verifies the Firebase token and exact email allowlist before serving any protected data or accepting any catalogue change.
+
+## 5. Preserved Cloudflare Access fallback
+
+The older `/admin/` and `/admin-api/*` implementation remains in the repository in case Cloudflare Access is restored later. The following setup is not required for the current Firebase login.
 
 Use the email address Stefan actually controls. The current price list gives `admin@coleridgemeat.co.za`; replace it below if Stefan uses a different address.
 
@@ -65,7 +86,7 @@ Use the email address Stefan actually controls. The current price list gives `ad
 
 If both the custom domain and `pages.dev` dashboard paths are protected by separate Access applications, copy both AUD tags and join them with a comma in `ACCESS_AUD`.
 
-## 5. Add the server-side security variables
+## 6. Cloudflare Access security variables
 
 In the Pages project open **Settings** > **Variables and Secrets** and add these Production variables:
 
@@ -79,7 +100,7 @@ List every authorized address in `ADMIN_EMAILS`, separated by commas, and use th
 
 The API does not trust the browser or the email header alone. It verifies the Cloudflare Access JWT signature, issuer, audience, expiry and exact email before any product can be changed. If any security variable is missing, production owner requests are denied.
 
-## 6. Use the dashboard
+## 7. Use the preserved Access dashboard
 
 The secured owner tools are available at:
 

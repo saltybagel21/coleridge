@@ -17,6 +17,7 @@ import { PUBLIC_SITE_URL } from "../config/site";
 import { formatTierRange, getLowestSpecialPrice } from "../shared/specials";
 import { formatZAR } from "../shop/CartContext";
 import type { Product } from "../shop/products";
+import { adminFetch, adminHref, signOutAdmin } from "./auth";
 
 type CatalogueResponse = { products: Product[] };
 type SessionResponse = { authenticated: true; email: string };
@@ -167,7 +168,7 @@ const PriceListGenerator: React.FC = () => {
     setError("");
     try {
       const [session, catalogue] = await Promise.all([
-        fetch("/admin-api/session", { cache: "no-store" }).then((response) => readJson<SessionResponse>(response)),
+        adminFetch("/session", { cache: "no-store" }).then((response) => readJson<SessionResponse>(response)),
         fetch("/api/products", { cache: "no-store" }).then((response) => readJson<CatalogueResponse>(response)),
       ]);
       const visible = catalogue.products.filter((product) => product.enabled !== false);
@@ -336,7 +337,7 @@ const PriceListGenerator: React.FC = () => {
       <header className="sticky top-0 z-30 border-b border-stone-800 bg-stone-950/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-burgundy-700/50 bg-burgundy-900/40 text-burgundy-200"><FileDown size={18} /></div><div className="min-w-0"><div className="truncate font-serif text-xl text-stone-100">Price List Studio</div><div className="truncate text-xs text-stone-500">{email || "Coleridge Meat"}</div></div></div>
-          <div className="flex items-center gap-2"><a href="/admin/" className="flex h-10 items-center gap-2 rounded-md border border-stone-700 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-stone-300 hover:bg-stone-900"><ArrowLeft size={15} /><span className="hidden sm:inline">Catalogue</span></a><button type="button" onClick={() => void load()} title="Refresh" className="flex h-10 w-10 items-center justify-center rounded-md border border-stone-700 text-stone-400 hover:bg-stone-900"><RefreshCw size={15} /></button><a href="/cdn-cgi/access/logout" title="Sign out" className="flex h-10 w-10 items-center justify-center rounded-md border border-stone-700 text-stone-400 hover:bg-stone-900"><LogOut size={15} /></a></div>
+          <div className="flex items-center gap-2"><a href={adminHref()} className="flex h-10 items-center gap-2 rounded-md border border-stone-700 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-stone-300 hover:bg-stone-900"><ArrowLeft size={15} /><span className="hidden sm:inline">Catalogue</span></a><button type="button" onClick={() => void load()} title="Refresh" className="flex h-10 w-10 items-center justify-center rounded-md border border-stone-700 text-stone-400 hover:bg-stone-900"><RefreshCw size={15} /></button><button type="button" onClick={() => void signOutAdmin()} title="Sign out" className="flex h-10 w-10 items-center justify-center rounded-md border border-stone-700 text-stone-400 hover:bg-stone-900"><LogOut size={15} /></button></div>
         </div>
       </header>
 

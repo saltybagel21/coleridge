@@ -32,6 +32,7 @@ import { getCampaignStatus, getJohannesburgDate } from "../shared/specials";
 import type { Product } from "../shop/products";
 import { getQuantityRules, isQuantityOnStep } from "../shop/quantityRules";
 import { buildSpecialsMessage, formatCampaignDate, formatSpecialMoney } from "./specialsMessage";
+import { adminFetch, adminHref, signOutAdmin } from "./auth";
 
 type CatalogueResponse = { products: Product[] };
 type CampaignsResponse = { campaigns: SpecialCampaign[] };
@@ -177,9 +178,9 @@ const SpecialsManager: React.FC = () => {
     setError("");
     try {
       const [session, catalogue, specials] = await Promise.all([
-        fetch("/admin-api/session", { cache: "no-store" }).then((response) => readJson<SessionResponse>(response)),
-        fetch("/admin-api/products", { cache: "no-store" }).then((response) => readJson<CatalogueResponse>(response)),
-        fetch("/admin-api/specials", { cache: "no-store" }).then((response) => readJson<CampaignsResponse>(response)),
+        adminFetch("/session", { cache: "no-store" }).then((response) => readJson<SessionResponse>(response)),
+        adminFetch("/products", { cache: "no-store" }).then((response) => readJson<CatalogueResponse>(response)),
+        adminFetch("/specials", { cache: "no-store" }).then((response) => readJson<CampaignsResponse>(response)),
       ]);
       setEmail(session.email);
       setProducts(catalogue.products);
@@ -447,7 +448,7 @@ const SpecialsManager: React.FC = () => {
     setSaving(true);
     setError("");
     try {
-      const response = await fetch(editingId ? `/admin-api/specials/${encodeURIComponent(editingId)}` : "/admin-api/specials", {
+      const response = await adminFetch(editingId ? `/specials/${encodeURIComponent(editingId)}` : "/specials", {
         method: editingId ? "PATCH" : "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ ...form, published }),
@@ -513,7 +514,7 @@ const SpecialsManager: React.FC = () => {
     setRowBusy(campaign.id);
     setError("");
     try {
-      const response = await fetch(`/admin-api/specials/${encodeURIComponent(campaign.id)}`, {
+      const response = await adminFetch(`/specials/${encodeURIComponent(campaign.id)}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ ...campaign, published: !campaign.published }),
@@ -534,7 +535,7 @@ const SpecialsManager: React.FC = () => {
     setRowBusy(deleteTarget.id);
     setError("");
     try {
-      const response = await fetch(`/admin-api/specials/${encodeURIComponent(deleteTarget.id)}`, { method: "DELETE" });
+      const response = await adminFetch(`/specials/${encodeURIComponent(deleteTarget.id)}`, { method: "DELETE" });
       await readJson<{ deleted: true }>(response);
       setCampaigns((current) => current.filter((campaign) => campaign.id !== deleteTarget.id));
       if (editingId === deleteTarget.id) newCampaign();
@@ -576,18 +577,18 @@ const SpecialsManager: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <a href="/admin/price-list/" title="Price-list studio" className="flex h-10 items-center gap-2 rounded-md border border-stone-700 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-stone-300 hover:bg-stone-900">
+            <a href={adminHref("price-list")} title="Price-list studio" className="flex h-10 items-center gap-2 rounded-md border border-stone-700 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-stone-300 hover:bg-stone-900">
               <FileDown size={15} /><span className="hidden lg:inline">Price list</span>
             </a>
-            <a href="/admin/" title="Catalogue manager" className="flex h-10 items-center gap-2 rounded-md border border-stone-700 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-stone-300 hover:bg-stone-900">
+            <a href={adminHref()} title="Catalogue manager" className="flex h-10 items-center gap-2 rounded-md border border-stone-700 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-stone-300 hover:bg-stone-900">
               <ArrowLeft size={15} /><span className="hidden sm:inline">Catalogue</span>
             </a>
             <button type="button" onClick={() => void load()} title="Refresh" className="flex h-10 w-10 items-center justify-center rounded-md border border-stone-700 text-stone-400 hover:bg-stone-900 hover:text-white">
               <RefreshCw size={15} />
             </button>
-            <a href="/cdn-cgi/access/logout" title="Sign out" className="flex h-10 w-10 items-center justify-center rounded-md border border-stone-700 text-stone-400 hover:bg-stone-900 hover:text-white">
+            <button type="button" onClick={() => void signOutAdmin()} title="Sign out" className="flex h-10 w-10 items-center justify-center rounded-md border border-stone-700 text-stone-400 hover:bg-stone-900 hover:text-white">
               <LogOut size={15} />
-            </a>
+            </button>
           </div>
         </div>
       </header>

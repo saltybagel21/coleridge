@@ -27,6 +27,7 @@ import { CheckoutModal } from './shop/CheckoutModal';
 const CatalogueAdmin = lazy(() => import('./admin/CatalogueAdmin'));
 const SpecialsBuilder = lazy(() => import('./admin/SpecialsBuilder'));
 const PriceListGenerator = lazy(() => import('./admin/PriceListGenerator'));
+const AdminAuthGate = lazy(() => import('./admin/AdminAuthGate'));
 
 // ============================================================================
 // BUSINESS INFO CONFIGURATION
@@ -1828,15 +1829,15 @@ const Footer = () => {
 function App() {
   const [adminRoute] = useState<"catalogue" | "specials" | "price-list" | null>(() => {
     const path = window.location.pathname.replace(/\/+$/, "") || "/";
-    if (path === "/admin/specials") return "specials";
-    if (path === "/admin/price-list") return "price-list";
-    if (path === "/admin") return "catalogue";
+    if (path === "/admin/specials" || path === "/owner/specials") return "specials";
+    if (path === "/admin/price-list" || path === "/owner/price-list") return "price-list";
+    if (path === "/admin" || path === "/owner") return "catalogue";
     return null;
   });
 
   useEffect(() => {
     if (!adminRoute && window.location.hash === "#cm-specials-portal") {
-      window.location.replace("/admin/specials/");
+      window.location.replace("/owner/specials/");
     }
   }, [adminRoute]);
 
@@ -1916,7 +1917,9 @@ function App() {
           </div>
         }
       >
-        {adminRoute === "specials" ? <SpecialsBuilder /> : adminRoute === "price-list" ? <PriceListGenerator /> : <CatalogueAdmin />}
+        <AdminAuthGate>
+          {adminRoute === "specials" ? <SpecialsBuilder /> : adminRoute === "price-list" ? <PriceListGenerator /> : <CatalogueAdmin />}
+        </AdminAuthGate>
       </Suspense>
     );
   }

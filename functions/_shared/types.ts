@@ -4,6 +4,7 @@ export interface Env {
   ADMIN_EMAILS?: string;
   ACCESS_TEAM_NAME?: string;
   ACCESS_AUD?: string;
+  FIREBASE_PROJECT_ID?: string;
 }
 
 export interface AccessIdentity {
