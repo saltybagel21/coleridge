@@ -45,10 +45,10 @@ The first request to `/api/products` creates the table and seeds all 83 products
 
 ## 4. Configure the current owner login
 
-Generate a PBKDF2-SHA256 hash for the chosen password and a separate random session secret. In the Pages project open **Settings** > **Variables and Secrets** and add both as encrypted Production secrets:
+Generate a one-way hash for the chosen password and a separate random session secret. In the Pages project open **Settings** > **Variables and Secrets** and add both as encrypted Production secrets:
 
 ```text
-OWNER_PASSWORD_HASH=<PBKDF2-SHA256 password hash>
+OWNER_PASSWORD_HASH=<one-way password hash>
 OWNER_SESSION_SECRET=<random secret of at least 32 bytes>
 ```
 

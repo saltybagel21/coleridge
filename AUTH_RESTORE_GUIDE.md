@@ -12,12 +12,12 @@ The live owner tools use a server-verified password and a signed 30-day session 
 Cloudflare Pages needs these encrypted Production secrets:
 
 ```text
-OWNER_PASSWORD_HASH=<PBKDF2-SHA256 password hash>
+OWNER_PASSWORD_HASH=<one-way password hash>
 OWNER_SESSION_SECRET=<random secret of at least 32 bytes>
 ```
 
 The plain password is never stored in the repository or sent back to the browser.
-The API verifies its PBKDF2 hash, throttles repeated failed attempts in D1, and
+The API verifies its one-way hash, throttles repeated failed attempts in D1, and
 issues an `HttpOnly`, `Secure`, `SameSite=Strict` cookie signed with the session
 secret. Any change to the password hash or session secret signs out existing devices.
 

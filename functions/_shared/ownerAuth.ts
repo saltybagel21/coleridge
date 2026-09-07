@@ -63,7 +63,18 @@ export const ownerSecurityIsConfigured = (env: Env) =>
   Boolean(env.OWNER_PASSWORD_HASH?.trim() && env.OWNER_SESSION_SECRET?.trim());
 
 export const verifyOwnerPassword = async (password: string, storedValue: string) => {
-  const [scheme, iterationsValue, saltValue, hashValue] = storedValue.trim().replace(/\$/g, ":").split(":");
+  const normalized = storedValue.trim();
+  if (!normalized.includes(":") && !normalized.includes("$")) {
+    try {
+      const expected = fromBase64Url(normalized);
+      const derived = new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(password)));
+      return constantTimeEqual(derived, expected);
+    } catch {
+      return false;
+    }
+  }
+
+  const [scheme, iterationsValue, saltValue, hashValue] = normalized.replace(/\$/g, ":").split(":");
   const iterations = Number(iterationsValue);
   if (
     scheme !== "pbkdf2-sha256" ||
