@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { AlertCircle, Loader2, LogIn, Package } from "lucide-react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { AlertCircle, Eye, EyeOff, Loader2, LogIn, Package } from "lucide-react";
 import {
-  adminAuth,
   adminFetch,
-  configureAdminPersistence,
   isLocalDevelopment,
   isOwnerRoute,
   signInAdmin,
@@ -16,22 +13,8 @@ const sessionIsAuthorised = async () => {
   const response = await adminFetch("/session", { cache: "no-store" });
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(body?.error || "This Google account is not authorised.");
+    throw new Error(body?.error || "Please enter the owner password.");
   }
-};
-
-const getSignInError = (error: unknown) => {
-  const message = error instanceof Error ? error.message : "Sign-in could not be completed.";
-  if (message.includes("popup-closed-by-user") || message.includes("user-cancelled")) {
-    return "Sign-in was cancelled.";
-  }
-  if (message.includes("popup-blocked")) {
-    return "The Google sign-in window was blocked. Allow pop-ups for this site and try again.";
-  }
-  if (message.includes("network-request-failed")) {
-    return "Google sign-in could not connect. Check the internet connection and try again.";
-  }
-  return message;
 };
 
 const AdminAuthGate: React.FC<React.PropsWithChildren> = ({ children }) => {
@@ -40,51 +23,37 @@ const AdminAuthGate: React.FC<React.PropsWithChildren> = ({ children }) => {
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (!isOwnerRoute() || isLocalDevelopment()) return;
 
     let active = true;
-    void configureAdminPersistence();
-    const unsubscribe = onAuthStateChanged(adminAuth, async (user) => {
-      if (!active) return;
-      if (!user) {
-        setState("signed-out");
-        return;
-      }
-
-      setState("checking");
-      try {
-        await sessionIsAuthorised();
-        if (active) {
-          setError("");
-          setState("authorised");
-        }
-      } catch (sessionError) {
-        await signOut(adminAuth);
-        if (active) {
-          setError(sessionError instanceof Error ? sessionError.message : "This account is not authorised.");
-          setState("signed-out");
-        }
-      }
-    });
+    void sessionIsAuthorised()
+      .then(() => {
+        if (active) setState("authorised");
+      })
+      .catch(() => {
+        if (active) setState("signed-out");
+      });
 
     return () => {
       active = false;
-      unsubscribe();
     };
   }, []);
 
-  const handleSignIn = async () => {
+  const handleSignIn = async (event: React.FormEvent) => {
+    event.preventDefault();
     setBusy(true);
     setError("");
     try {
-      await signInAdmin();
+      await signInAdmin(password);
       await sessionIsAuthorised();
+      setPassword("");
       setState("authorised");
     } catch (signInError) {
-      await signOut(adminAuth).catch(() => undefined);
-      setError(getSignInError(signInError));
+      setError(signInError instanceof Error ? signInError.message : "Sign-in could not be completed.");
       setState("signed-out");
     } finally {
       setBusy(false);
@@ -112,7 +81,7 @@ const AdminAuthGate: React.FC<React.PropsWithChildren> = ({ children }) => {
             {state === "checking" ? "Checking your session" : "Sign in securely"}
           </h1>
           <p className="mt-3 text-sm leading-6 text-stone-400">
-            Use the approved owner Google account. This device will stay signed in for up to 30 days.
+            Enter the owner password. This device can stay signed in for up to 30 days.
           </p>
 
           {error ? (
@@ -128,15 +97,41 @@ const AdminAuthGate: React.FC<React.PropsWithChildren> = ({ children }) => {
             <Loader2 size={17} className="animate-spin" /> Checking session
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => void handleSignIn()}
-            disabled={busy}
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-burgundy-700 px-5 text-sm font-semibold text-white transition-colors hover:bg-burgundy-600 disabled:opacity-60"
-          >
-            {busy ? <Loader2 size={17} className="animate-spin" /> : <LogIn size={17} />}
-            Continue with Google
-          </button>
+          <form onSubmit={(event) => void handleSignIn(event)}>
+            <label htmlFor="owner-password" className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">
+              Password
+            </label>
+            <div className="relative">
+              <input
+                id="owner-password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                autoComplete="current-password"
+                autoFocus
+                required
+                className="h-12 w-full rounded-md border border-stone-700 bg-stone-950 px-4 pr-12 text-sm text-stone-100 outline-none transition-colors placeholder:text-stone-600 focus:border-burgundy-500"
+                placeholder="Enter password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((visible) => !visible)}
+                className="absolute right-1 top-1 flex h-10 w-10 items-center justify-center rounded-md text-stone-500 transition-colors hover:bg-stone-800 hover:text-stone-200"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                title={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
+            <button
+              type="submit"
+              disabled={busy || !password}
+              className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-burgundy-700 px-5 text-sm font-semibold text-white transition-colors hover:bg-burgundy-600 disabled:opacity-60"
+            >
+              {busy ? <Loader2 size={17} className="animate-spin" /> : <LogIn size={17} />}
+              Sign in
+            </button>
+          </form>
         )}
 
         <a href="/" className="mt-5 block text-center text-xs text-stone-500 transition-colors hover:text-stone-300">

@@ -1,6 +1,6 @@
 # Cloudflare Pages deployment and owner access
 
-The public site remains a Cloudflare Pages project connected to GitHub. Product data is stored in Cloudflare D1, and the current owner dashboard uses Firebase Google sign-in. See `AUTH_RESTORE_GUIDE.md` for the live authentication setup and the preserved Cloudflare Access fallback.
+The public site remains a Cloudflare Pages project connected to GitHub. Product data is stored in Cloudflare D1, and the current owner dashboard uses server-side password authentication. See `AUTH_RESTORE_GUIDE.md` for the live authentication setup and the preserved Cloudflare Access fallback.
 
 ## 1. Put the project on GitHub
 
@@ -45,13 +45,11 @@ The first request to `/api/products` creates the table and seeds all 83 products
 
 ## 4. Configure the current owner login
 
-Create or open the Firebase project named `coleridge-admin`, enable the Google sign-in provider, and add the live website hostname under **Authentication** > **Settings** > **Authorized domains**.
-
-In the Pages project open **Settings** > **Variables and Secrets** and add these Production variables:
+Generate a PBKDF2-SHA256 hash for the chosen password and a separate random session secret. In the Pages project open **Settings** > **Variables and Secrets** and add both as encrypted Production secrets:
 
 ```text
-FIREBASE_PROJECT_ID=coleridge-admin
-ADMIN_EMAILS=admin@coleridgemeat.co.za,rautenbachmax@gmail.com
+OWNER_PASSWORD_HASH=<PBKDF2-SHA256 password hash>
+OWNER_SESSION_SECRET=<random secret of at least 32 bytes>
 ```
 
 The current owner tools are available at:
@@ -60,11 +58,11 @@ The current owner tools are available at:
 - WhatsApp specials builder: `/owner/specials/`
 - Price-list studio: `/owner/price-list/`
 
-The browser keeps the approved Google account signed in locally, while the server requires a fresh authentication after 30 days. The API verifies the Firebase token and exact email allowlist before serving any protected data or accepting any catalogue change.
+The browser receives a signed, `HttpOnly`, `Secure`, `SameSite=Strict` cookie and remains signed in for up to 30 days. The password is checked only by the server, repeated failures are throttled in D1, and no protected data or catalogue change is accepted without a valid session.
 
 ## 5. Preserved Cloudflare Access fallback
 
-The older `/admin/` and `/admin-api/*` implementation remains in the repository in case Cloudflare Access is restored later. The following setup is not required for the current Firebase login.
+The older `/admin/` and `/admin-api/*` implementation remains in the repository in case Cloudflare Access is restored later. The following setup is not required for the current password login.
 
 Use the email address Stefan actually controls. The current price list gives `admin@coleridgemeat.co.za`; replace it below if Stefan uses a different address.
 

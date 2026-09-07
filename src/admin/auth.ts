@@ -1,22 +1,3 @@
-import { initializeApp } from "firebase/app";
-import {
-  GoogleAuthProvider,
-  browserLocalPersistence,
-  getAuth,
-  setPersistence,
-  signInWithPopup,
-  signOut,
-} from "firebase/auth";
-
-const firebaseApp = initializeApp({
-  apiKey: "AIzaSyA_lfvEvzaoN5ERKU722uWpggspL-vriDo",
-  authDomain: "coleridge-admin.firebaseapp.com",
-  projectId: "coleridge-admin",
-  appId: "1:766803260855:web:54de4b82e570107f6a6432",
-});
-
-export const adminAuth = getAuth(firebaseApp);
-
 export const isLocalDevelopment = () =>
   ["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname);
 
@@ -28,12 +9,17 @@ export const adminHref = (section: "catalogue" | "specials" | "price-list" = "ca
   return section === "catalogue" ? `${base}/` : `${base}/${section}/`;
 };
 
-export const configureAdminPersistence = () =>
-  setPersistence(adminAuth, browserLocalPersistence);
-
-export const signInAdmin = async () => {
-  await configureAdminPersistence();
-  return signInWithPopup(adminAuth, new GoogleAuthProvider());
+export const signInAdmin = async (password: string) => {
+  const response = await fetch("/owner-api/login", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error || "Sign-in could not be completed.");
+  }
 };
 
 export const signOutAdmin = async () => {
@@ -42,15 +28,17 @@ export const signOutAdmin = async () => {
     return;
   }
 
-  await signOut(adminAuth);
+  await fetch("/owner-api/logout", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "content-type": "application/json" },
+    body: "{}",
+  }).catch(() => undefined);
   window.location.replace("/owner/");
 };
 
 export const adminFetch = async (path: string, init: RequestInit = {}) => {
   if (!isOwnerRoute()) return fetch(`/admin-api${path}`, init);
 
-  const token = await adminAuth.currentUser?.getIdToken();
-  const headers = new Headers(init.headers);
-  if (token) headers.set("authorization", `Bearer ${token}`);
-  return fetch(`/owner-api${path}`, { ...init, headers });
+  return fetch(`/owner-api${path}`, { ...init, credentials: "same-origin" });
 };

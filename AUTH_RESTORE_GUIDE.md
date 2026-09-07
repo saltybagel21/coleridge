@@ -2,26 +2,24 @@
 
 ## Current login
 
-The live owner tools use Firebase Google authentication on the no-cost Spark plan.
+The live owner tools use a server-verified password and a signed 30-day session cookie.
 
 - Owner dashboard: `/owner/`
 - Specials manager: `/owner/specials/`
 - Price-list studio: `/owner/price-list/`
 - Protected API: `/owner-api/*`
 
-Firebase project: `coleridge-admin`
-
-Cloudflare Pages needs these Production variables:
+Cloudflare Pages needs these encrypted Production secrets:
 
 ```text
-FIREBASE_PROJECT_ID=coleridge-admin
-ADMIN_EMAILS=admin@coleridgemeat.co.za,rautenbachmax@gmail.com
+OWNER_PASSWORD_HASH=<PBKDF2-SHA256 password hash>
+OWNER_SESSION_SECRET=<random secret of at least 32 bytes>
 ```
 
-The Firebase web configuration is intentionally public and lives in
-`src/admin/auth.ts`. The API does not trust that configuration or the browser. It
-verifies the Firebase JWT signature, issuer, audience, expiry, verified email,
-30-day authentication age, and exact email allowlist before any catalogue write.
+The plain password is never stored in the repository or sent back to the browser.
+The API verifies its PBKDF2 hash, throttles repeated failed attempts in D1, and
+issues an `HttpOnly`, `Secure`, `SameSite=Strict` cookie signed with the session
+secret. Any change to the password hash or session secret signs out existing devices.
 
 ## Preserved Cloudflare Access login
 

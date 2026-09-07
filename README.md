@@ -28,6 +28,6 @@ npm run build
 
 ## Deployment
 
-Follow `CLOUDFLARE_SETUP.md` when recreating or transferring the project. The live deployment uses a D1 catalogue database and Firebase Google authentication for the owner dashboard. See `AUTH_RESTORE_GUIDE.md` for the current setup and preserved Cloudflare Access fallback.
+Follow `CLOUDFLARE_SETUP.md` when recreating or transferring the project. The live deployment uses a D1 catalogue database and server-side password authentication for the owner dashboard. See `AUTH_RESTORE_GUIDE.md` for the current setup and preserved Cloudflare Access fallback.
 
 The previous retail/wholesale store and its restoration instructions are under `legacy/retail-wholesale-store`.
