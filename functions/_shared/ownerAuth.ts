@@ -63,7 +63,7 @@ export const ownerSecurityIsConfigured = (env: Env) =>
   Boolean(env.OWNER_PASSWORD_HASH?.trim() && env.OWNER_SESSION_SECRET?.trim());
 
 export const verifyOwnerPassword = async (password: string, storedValue: string) => {
-  const [scheme, iterationsValue, saltValue, hashValue] = storedValue.trim().split("$");
+  const [scheme, iterationsValue, saltValue, hashValue] = storedValue.trim().replace(/\$/g, ":").split(":");
   const iterations = Number(iterationsValue);
   if (
     scheme !== "pbkdf2-sha256" ||
