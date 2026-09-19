@@ -21,6 +21,13 @@ import {
 } from "lucide-react";
 import type { Product } from "../shop/products";
 import { formatZAR } from "../shop/CartContext";
+import {
+  defaultSpitPackagePrices,
+  formatSpitPrice,
+  SPIT_PACKAGES,
+  type SpitPackageId,
+  type SpitPackagePrices,
+} from "../shared/spitPackages";
 import { adminFetch, adminHref, signOutAdmin } from "./auth";
 
 type CatalogueResponse = { products: Product[] };
@@ -86,6 +93,37 @@ const CatalogueAdmin: React.FC = () => {
   const [renamingCategory, setRenamingCategory] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [spitPrices, setSpitPrices] = useState<SpitPackagePrices>(defaultSpitPackagePrices);
+  const [spitDrafts, setSpitDrafts] = useState<Record<SpitPackageId, string>>({
+    "package-1": "150",
+    "package-2": "165",
+    "package-3": "125",
+  });
+  const [spitLoading, setSpitLoading] = useState(true);
+  const [spitAvailable, setSpitAvailable] = useState(false);
+  const [spitBusy, setSpitBusy] = useState<SpitPackageId | null>(null);
+  const [spitError, setSpitError] = useState("");
+
+  const loadSpitPrices = async () => {
+    setSpitLoading(true);
+    setSpitAvailable(false);
+    setSpitError("");
+    try {
+      const response = await adminFetch("/spit-packages", { cache: "no-store" });
+      const { prices } = await readJson<{ prices: SpitPackagePrices }>(response);
+      setSpitPrices(prices);
+      setSpitAvailable(true);
+      setSpitDrafts({
+        "package-1": String(prices["package-1"]),
+        "package-2": String(prices["package-2"]),
+        "package-3": String(prices["package-3"]),
+      });
+    } catch (loadError) {
+      setSpitError(loadError instanceof Error ? loadError.message : "Spit package prices could not be loaded.");
+    } finally {
+      setSpitLoading(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -111,7 +149,36 @@ const CatalogueAdmin: React.FC = () => {
   useEffect(() => {
     document.title = "Catalogue Manager | Coleridge Meat";
     void load();
+    void loadSpitPrices();
   }, []);
+
+  const saveSpitPrice = async (event: React.FormEvent, id: SpitPackageId) => {
+    event.preventDefault();
+    const raw = spitDrafts[id].trim();
+    const price = Number(raw);
+    if (!raw || !Number.isFinite(price) || price < 0 || price > 1_000_000 || Math.abs(price * 100 - Math.round(price * 100)) > 0.000001) {
+      setSpitError("Enter a price between R0 and R1,000,000 with no more than two decimal places.");
+      return;
+    }
+
+    setSpitBusy(id);
+    setSpitError("");
+    try {
+      const response = await adminFetch("/spit-packages", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id, price }),
+      });
+      const { prices } = await readJson<{ prices: SpitPackagePrices }>(response);
+      setSpitPrices(prices);
+      setSpitDrafts((current) => ({ ...current, [id]: String(prices[id]) }));
+      setNotice(`${SPIT_PACKAGES.find((pkg) => pkg.id === id)?.label} price updated to ${formatSpitPrice(prices[id])}.`);
+    } catch (saveError) {
+      setSpitError(saveError instanceof Error ? saveError.message : "The spit package price could not be saved.");
+    } finally {
+      setSpitBusy(null);
+    }
+  };
 
   useEffect(() => {
     if (!notice) return;
@@ -381,7 +448,7 @@ const CatalogueAdmin: React.FC = () => {
             </a>
             <button
               type="button"
-              onClick={() => void load()}
+              onClick={() => { void load(); void loadSpitPrices(); }}
               title="Refresh catalogue"
               className="flex h-10 w-10 items-center justify-center rounded-md border border-stone-700 text-stone-400 transition-colors hover:bg-stone-900 hover:text-stone-100"
             >
@@ -460,6 +527,52 @@ const CatalogueAdmin: React.FC = () => {
             </div>
           </div>
         </div>
+
+        <section className="mt-7 border-b border-stone-800 pb-7" aria-labelledby="spit-package-heading">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="spit-package-heading" className="font-serif text-xl text-stone-100">Spit package prices</h2>
+            <span className="text-xs text-stone-500">Per person · shown on the website</span>
+          </div>
+          {spitError && (
+            <div className="mt-3 flex items-center gap-3 text-sm text-red-300" role="alert">
+              <span>{spitError}</span>
+              {!spitAvailable && <button type="button" onClick={() => void loadSpitPrices()} className="underline underline-offset-2">Retry</button>}
+            </div>
+          )}
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {SPIT_PACKAGES.map((pkg) => (
+              <form key={pkg.id} onSubmit={(event) => void saveSpitPrice(event, pkg.id)} className="flex items-end gap-3 rounded-md border border-stone-800 bg-stone-900/50 p-4">
+                <div className="min-w-0 flex-1">
+                  <label htmlFor={`spit-price-${pkg.id}`} className={labelClass}>{pkg.label}</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-stone-500">R</span>
+                    <input
+                      id={`spit-price-${pkg.id}`}
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      max="1000000"
+                      step="0.01"
+                      required
+                      value={spitDrafts[pkg.id]}
+                      onChange={(event) => setSpitDrafts((current) => ({ ...current, [pkg.id]: event.target.value }))}
+                      disabled={!spitAvailable || spitLoading || spitBusy !== null}
+                      className={`${inputClass} pl-7`}
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  title={`Save ${pkg.label} price`}
+                  disabled={!spitAvailable || spitLoading || spitBusy !== null || Number(spitDrafts[pkg.id]) === spitPrices[pkg.id]}
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-burgundy-700 text-white transition-colors hover:bg-burgundy-600 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {spitBusy === pkg.id ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                </button>
+              </form>
+            ))}
+          </div>
+        </section>
 
         <div className="mt-7 flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">

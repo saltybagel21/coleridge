@@ -23,6 +23,7 @@ import { CartProvider, useCart, formatZAR } from './shop/CartContext';
 import { PublicShopIntro, ShopGrid, queueShopFocus } from './shop/Shop';
 import { CartDrawer } from './shop/CartDrawer';
 import { CheckoutModal } from './shop/CheckoutModal';
+import { defaultSpitPackagePrices, formatSpitPrice, SPIT_PACKAGES, type SpitPackagePrices } from './shared/spitPackages';
 
 const CatalogueAdmin = lazy(() => import('./admin/CatalogueAdmin'));
 const SpecialsBuilder = lazy(() => import('./admin/SpecialsBuilder'));
@@ -1162,11 +1163,35 @@ const FeaturedCuts = () => {
 };
 
 const SpitbraaiFeature = () => {
-  const packages = [
-    { label: "Package 1", price: "R150", desc: "per person" },
-    { label: "Package 2", price: "R165", desc: "per person" },
-    { label: "Package 3", price: "R125", desc: "per person · budget option" },
-  ];
+  const [prices, setPrices] = useState<SpitPackagePrices>(defaultSpitPackagePrices);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refreshPrices = async () => {
+      if (document.visibilityState === 'hidden') return;
+      try {
+        const response = await fetch('/api/spit-packages', { cache: 'no-store' });
+        if (!response.ok) return;
+        const data = (await response.json()) as { prices?: SpitPackagePrices };
+        if (data.prices && SPIT_PACKAGES.every((pkg) => Number.isFinite(data.prices?.[pkg.id]))) {
+          if (!cancelled) setPrices(data.prices);
+        }
+      } catch {
+        // Keep the last known prices if the live service is temporarily unavailable.
+      }
+    };
+
+    void refreshPrices();
+    const interval = window.setInterval(() => void refreshPrices(), 15_000);
+    window.addEventListener('focus', refreshPrices);
+    document.addEventListener('visibilitychange', refreshPrices);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refreshPrices);
+      document.removeEventListener('visibilitychange', refreshPrices);
+    };
+  }, []);
 
   return (
     <section id="spitbraai" aria-label="Spitbraai catering service in Stellenbosch – Coleridge Meat" className="py-24 md:py-32 bg-stone-950 border-y border-stone-900 relative overflow-hidden">
@@ -1225,13 +1250,13 @@ const SpitbraaiFeature = () => {
 
             {/* Pricing pills */}
             <motion.div variants={fadeInUp} className="grid grid-cols-3 gap-3 mb-8">
-              {packages.map((pkg) => (
+              {SPIT_PACKAGES.map((pkg) => (
                 <div
-                  key={pkg.label}
+                  key={pkg.id}
                   className="bg-stone-900 border border-stone-800 rounded-sm p-4 text-center hover:border-burgundy-800/60 transition-colors"
                 >
                   <div className="text-[10px] font-semibold tracking-[0.15em] uppercase text-stone-500 mb-1">{pkg.label}</div>
-                  <div className="text-2xl font-serif text-stone-100">{pkg.price}</div>
+                  <div className="text-2xl font-serif text-stone-100">{formatSpitPrice(prices[pkg.id])}</div>
                   <div className="text-[10px] text-stone-500 mt-1 leading-tight">{pkg.desc}</div>
                 </div>
               ))}
