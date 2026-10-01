@@ -1169,7 +1169,8 @@ const SpitbraaiFeature = () => {
   const [selectedId, setSelectedId] = useState<SpitPackageId | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const selected = config.packages.slice(0, config.visibleCount).find((pkg) => pkg.id === selectedId);
+  const visiblePackages = config.visibleIds.map((id) => config.packages.find((pkg) => pkg.id === id)).filter((pkg) => pkg !== undefined);
+  const selected = visiblePackages.find((pkg) => pkg.id === selectedId);
 
   useEffect(() => {
     let cancelled = false;
@@ -1179,7 +1180,7 @@ const SpitbraaiFeature = () => {
         const response = await fetch('/api/spit-packages', { cache: 'no-store' });
         if (!response.ok) return;
         const data = (await response.json()) as { config?: SpitPackageConfig };
-        if (data.config && Number.isInteger(data.config.visibleCount) && data.config.visibleCount >= 2 && data.config.visibleCount <= 6 && Array.isArray(data.config.packages) && data.config.packages.length === 6) {
+        if (data.config && Array.isArray(data.config.visibleIds) && data.config.visibleIds.length >= 2 && data.config.visibleIds.length <= 6 && Array.isArray(data.config.packages) && data.config.packages.length === 6) {
           if (!cancelled) setConfig((current) => JSON.stringify(current) === JSON.stringify(data.config) ? current : data.config!);
         }
       } catch {
@@ -1226,7 +1227,7 @@ const SpitbraaiFeature = () => {
     };
   }, [selected]);
 
-  const packageCardWidth = config.visibleCount === 2 || config.visibleCount === 4
+  const packageCardWidth = visiblePackages.length === 2 || visiblePackages.length === 4
     ? 'w-[calc(50%-0.375rem)]'
     : 'w-[calc(50%-0.375rem)] sm:w-[calc(33.333%-0.5rem)]';
 
@@ -1287,7 +1288,7 @@ const SpitbraaiFeature = () => {
 
             {/* Pricing pills */}
             <motion.div variants={fadeInUp} className="mb-8 flex flex-wrap justify-center gap-3">
-              {config.packages.slice(0, config.visibleCount).map((pkg) => (
+              {visiblePackages.map((pkg) => (
                 <button
                   type="button"
                   key={pkg.id}

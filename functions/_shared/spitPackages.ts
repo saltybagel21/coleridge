@@ -23,8 +23,20 @@ const ensureConfigTable = (db: D1Database) =>
 export const validateSpitPackageConfig = (value: unknown): SpitPackageConfig => {
   if (!value || typeof value !== "object") throw new Error("Invalid package configuration.");
   const input = value as Record<string, unknown>;
-  if (!Number.isInteger(input.visibleCount) || (input.visibleCount as number) < 2 || (input.visibleCount as number) > 6) {
+  const legacyCount = input.visibleCount;
+  if (legacyCount !== undefined && (!Number.isInteger(legacyCount) || (legacyCount as number) < 2 || (legacyCount as number) > 6)) {
     throw new Error("Choose between 2 and 6 packages.");
+  }
+  const visibleIds = input.visibleIds === undefined && Number.isInteger(legacyCount)
+    ? SPIT_PACKAGE_IDS.slice(0, legacyCount as number)
+    : input.visibleIds;
+  if (!Array.isArray(visibleIds) || visibleIds.length < 2 || visibleIds.length > 6 ||
+      new Set(visibleIds).size !== visibleIds.length ||
+      visibleIds.some((id) => !SPIT_PACKAGE_IDS.includes(id as SpitPackageId))) {
+    throw new Error("Choose 2 to 6 different packages to show.");
+  }
+  if (legacyCount !== undefined && legacyCount !== visibleIds.length) {
+    throw new Error("Package visibility has changed. Reload and try again.");
   }
   if (!Array.isArray(input.packages) || input.packages.length !== 6) {
     throw new Error("All six package slots are required.");
@@ -45,7 +57,7 @@ export const validateSpitPackageConfig = (value: unknown): SpitPackageConfig => 
     if (typeof price !== "number" || !Number.isFinite(price) || price < 0 || price > 1_000_000 || Math.abs(price * 100 - Math.round(price * 100)) > 0.000001) {
       throw new Error(`Enter a valid price for package ${index + 1}.`);
     }
-    if (index < (input.visibleCount as number) && price <= 0) {
+    if (visibleIds.includes(entry.id) && price <= 0) {
       throw new Error(`Set a price above R0 for package ${index + 1} before showing it.`);
     }
     if (!Array.isArray(entry.included) || entry.included.length > 16 || entry.included.some((item) => typeof item !== "string" || !item.trim() || item.trim().length > 120)) {
@@ -61,7 +73,7 @@ export const validateSpitPackageConfig = (value: unknown): SpitPackageConfig => 
     };
   });
 
-  return { visibleCount: input.visibleCount as number, packages };
+  return { visibleCount: visibleIds.length, visibleIds: visibleIds as SpitPackageId[], packages };
 };
 
 export const listSpitPackageConfig = async (db: D1Database): Promise<SpitPackageConfig> => {

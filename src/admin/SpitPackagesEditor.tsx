@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { ChevronDown, Loader2, RefreshCw, Save } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Loader2, RefreshCw, Save } from "lucide-react";
 import {
   defaultSpitPackageConfig,
   formatSpitPrice,
   type SpitPackage,
   type SpitPackageConfig,
+  type SpitPackageId,
 } from "../shared/spitPackages";
 import { adminFetch } from "./auth";
 
@@ -13,10 +14,10 @@ type DraftPackage = Omit<SpitPackage, "price" | "included"> & {
   includedText: string;
 };
 
-type DraftConfig = { visibleCount: number; packages: DraftPackage[] };
+type DraftConfig = { visibleIds: SpitPackageId[]; packages: DraftPackage[] };
 
 const toDraft = (config: SpitPackageConfig): DraftConfig => ({
-  visibleCount: config.visibleCount,
+  visibleIds: [...config.visibleIds],
   packages: config.packages.map(({ price, included, ...pkg }) => ({
     ...pkg,
     priceText: String(price),
@@ -62,9 +63,32 @@ const SpitPackagesEditor: React.FC<{ onNotice: (message: string) => void }> = ({
     setError("");
   };
 
+  const toggleVisible = (id: SpitPackageId) => {
+    if (draft.visibleIds.includes(id) && draft.visibleIds.length === 2) {
+      setError("Keep at least two packages on the website.");
+      return;
+    }
+    setDraft((current) => ({
+      ...current,
+      visibleIds: current.visibleIds.includes(id)
+        ? current.visibleIds.filter((visibleId) => visibleId !== id)
+        : [...current.visibleIds, id],
+    }));
+    setError("");
+  };
+
+  const moveVisible = (index: number, direction: -1 | 1) => {
+    setDraft((current) => {
+      const visibleIds = [...current.visibleIds];
+      [visibleIds[index], visibleIds[index + direction]] = [visibleIds[index + direction], visibleIds[index]];
+      return { ...current, visibleIds };
+    });
+  };
+
   const save = async () => {
     const config: SpitPackageConfig = {
-      visibleCount: draft.visibleCount,
+      visibleCount: draft.visibleIds.length,
+      visibleIds: draft.visibleIds,
       packages: draft.packages.map(({ priceText, includedText, ...pkg }) => ({
         ...pkg,
         price: Number(priceText),
@@ -72,7 +96,7 @@ const SpitPackagesEditor: React.FC<{ onNotice: (message: string) => void }> = ({
       })),
     };
     const invalidIndex = config.packages.findIndex((pkg, index) =>
-      index < config.visibleCount && (!pkg.name.trim() || !draft.packages[index].priceText.trim() || !Number.isFinite(pkg.price) || pkg.price <= 0),
+      config.visibleIds.includes(pkg.id) && (!pkg.name.trim() || !draft.packages[index].priceText.trim() || !Number.isFinite(pkg.price) || pkg.price <= 0),
     );
     if (invalidIndex >= 0) {
       setExpanded(invalidIndex);
@@ -108,21 +132,10 @@ const SpitPackagesEditor: React.FC<{ onNotice: (message: string) => void }> = ({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 id="spit-package-heading" className="font-serif text-xl text-stone-100">Spit packages</h2>
-          <p className="mt-1 text-xs text-stone-500">Set the packages visitors can compare and open for details.</p>
+          <p className="mt-1 text-xs text-stone-500">Choose which saved packages appear and put them in order.</p>
         </div>
-        <div className="flex items-end gap-2">
-          <div>
-            <label htmlFor="spit-package-count" className={labelClass}>Packages shown</label>
-            <select
-              id="spit-package-count"
-              value={draft.visibleCount}
-              onChange={(event) => { setDraft((current) => ({ ...current, visibleCount: Number(event.target.value) })); setError(""); }}
-              disabled={loading || saving || !saved}
-              className={`${inputClass} min-w-20`}
-            >
-              {[2, 3, 4, 5, 6].map((count) => <option key={count} value={count}>{count}</option>)}
-            </select>
-          </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-stone-400">{draft.visibleIds.length} on site</span>
           <button type="button" onClick={() => void load()} disabled={loading || saving} title="Reload spit packages" aria-label="Reload spit packages" className="flex h-10 w-10 items-center justify-center rounded-md border border-stone-700 text-stone-400 hover:text-stone-100 disabled:opacity-40">
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
@@ -133,25 +146,48 @@ const SpitPackagesEditor: React.FC<{ onNotice: (message: string) => void }> = ({
       {loading ? (
         <div className="mt-4 flex items-center gap-2 text-sm text-stone-500"><Loader2 size={16} className="animate-spin" /> Loading packages</div>
       ) : (
-        <div className="mt-4 grid gap-2">
-          {draft.packages.slice(0, draft.visibleCount).map((pkg, index) => (
+        <>
+          <div className="mt-5 border-y border-stone-800 py-3">
+            <div className={labelClass}>Order on the website</div>
+            <div className="grid gap-1.5">
+              {draft.visibleIds.map((id, index) => {
+                const pkg = draft.packages.find((item) => item.id === id)!;
+                return (
+                  <div key={id} className="flex min-w-0 items-center gap-3 rounded-md bg-stone-900/60 px-3 py-2">
+                    <span className="w-5 shrink-0 text-center text-xs text-stone-500">{index + 1}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm text-stone-200">{pkg.name}</span>
+                    <button type="button" onClick={() => moveVisible(index, -1)} disabled={index === 0} title={`Move ${pkg.name} up`} aria-label={`Move ${pkg.name} up`} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-stone-400 hover:bg-stone-800 hover:text-stone-100 disabled:opacity-30"><ArrowUp size={15} /></button>
+                    <button type="button" onClick={() => moveVisible(index, 1)} disabled={index === draft.visibleIds.length - 1} title={`Move ${pkg.name} down`} aria-label={`Move ${pkg.name} down`} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-stone-400 hover:bg-stone-800 hover:text-stone-100 disabled:opacity-30"><ArrowDown size={15} /></button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="mt-4 grid gap-2">
+          {draft.packages.map((pkg, index) => (
             <div key={pkg.id} className="rounded-md border border-stone-800 bg-stone-900/50">
-              <button
-                type="button"
-                aria-expanded={expanded === index}
-                aria-controls={`spit-package-fields-${index}`}
-                onClick={() => setExpanded((current) => current === index ? null : index)}
-                className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left hover:bg-stone-900 sm:px-5"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-stone-100">{pkg.name || `Package ${index + 1}`}</span>
-                  <span className="mt-1 block text-xs text-stone-500">{pkg.includedText.trim() ? `${pkg.includedText.split(/\r?\n/).filter(Boolean).length} included items` : "Add what is included"}</span>
-                </span>
-                <span className="flex shrink-0 items-center gap-3 text-sm text-stone-200">
-                  {pkg.priceText.trim() && Number.isFinite(Number(pkg.priceText)) ? formatSpitPrice(Number(pkg.priceText)) : "Set price"}
-                  <ChevronDown size={16} className={`text-stone-500 transition-transform ${expanded === index ? "rotate-180" : ""}`} />
-                </span>
-              </button>
+              <div className="flex items-center gap-2 pr-4">
+                <button
+                  type="button"
+                  aria-expanded={expanded === index}
+                  aria-controls={`spit-package-fields-${index}`}
+                  onClick={() => setExpanded((current) => current === index ? null : index)}
+                  className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3 text-left hover:bg-stone-900 sm:px-5"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-stone-100">{pkg.name || `Package ${index + 1}`}</span>
+                    <span className="mt-1 block text-xs text-stone-500">{pkg.includedText.trim() ? `${pkg.includedText.split(/\r?\n/).filter(Boolean).length} included items` : "Add what is included"}</span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2 text-sm text-stone-200">
+                    {pkg.priceText.trim() && Number.isFinite(Number(pkg.priceText)) ? formatSpitPrice(Number(pkg.priceText)) : "Set price"}
+                    <ChevronDown size={16} className={`text-stone-500 transition-transform ${expanded === index ? "rotate-180" : ""}`} />
+                  </span>
+                </button>
+                <label className="flex shrink-0 cursor-pointer items-center gap-2 border-l border-stone-700 pl-3 text-xs text-stone-400">
+                  <input type="checkbox" aria-label={`Show ${pkg.name} on website`} checked={draft.visibleIds.includes(pkg.id)} onChange={() => toggleVisible(pkg.id)} className="h-4 w-4 accent-[#3c74b1]" />
+                  <span className="hidden sm:inline">Show</span>
+                </label>
+              </div>
               {expanded === index && (
                 <div id={`spit-package-fields-${index}`} className="grid gap-4 border-t border-stone-800 px-4 py-5 sm:grid-cols-2 sm:px-5">
                   <div>
@@ -179,7 +215,8 @@ const SpitPackagesEditor: React.FC<{ onNotice: (message: string) => void }> = ({
               )}
             </div>
           ))}
-        </div>
+          </div>
+        </>
       )}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">

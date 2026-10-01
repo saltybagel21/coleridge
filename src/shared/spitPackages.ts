@@ -15,6 +15,7 @@ export type SpitPackage = {
 
 export type SpitPackageConfig = {
   visibleCount: number;
+  visibleIds: SpitPackageId[];
   packages: SpitPackage[];
 };
 
@@ -24,6 +25,7 @@ const defaultPrices = [150, 165, 125, 0, 0, 0];
 
 export const defaultSpitPackageConfig = (): SpitPackageConfig => ({
   visibleCount: 3,
+  visibleIds: SPIT_PACKAGE_IDS.slice(0, 3),
   packages: SPIT_PACKAGE_IDS.map((id, index) => ({
     id,
     name: `Package ${index + 1}`,
