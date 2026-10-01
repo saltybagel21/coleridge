@@ -1,4 +1,5 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   MapPin,
@@ -23,7 +24,8 @@ import { CartProvider, useCart, formatZAR } from './shop/CartContext';
 import { PublicShopIntro, ShopGrid, queueShopFocus } from './shop/Shop';
 import { CartDrawer } from './shop/CartDrawer';
 import { CheckoutModal } from './shop/CheckoutModal';
-import { defaultSpitPackagePrices, formatSpitPrice, SPIT_PACKAGES, type SpitPackagePrices } from './shared/spitPackages';
+import InstallSuggestion from './InstallSuggestion';
+import { defaultSpitPackageConfig, formatSpitPrice, type SpitPackageConfig, type SpitPackageId } from './shared/spitPackages';
 
 const CatalogueAdmin = lazy(() => import('./admin/CatalogueAdmin'));
 const SpecialsBuilder = lazy(() => import('./admin/SpecialsBuilder'));
@@ -1163,7 +1165,11 @@ const FeaturedCuts = () => {
 };
 
 const SpitbraaiFeature = () => {
-  const [prices, setPrices] = useState<SpitPackagePrices>(defaultSpitPackagePrices);
+  const [config, setConfig] = useState<SpitPackageConfig>(defaultSpitPackageConfig);
+  const [selectedId, setSelectedId] = useState<SpitPackageId | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const selected = config.packages.slice(0, config.visibleCount).find((pkg) => pkg.id === selectedId);
 
   useEffect(() => {
     let cancelled = false;
@@ -1172,9 +1178,9 @@ const SpitbraaiFeature = () => {
       try {
         const response = await fetch('/api/spit-packages', { cache: 'no-store' });
         if (!response.ok) return;
-        const data = (await response.json()) as { prices?: SpitPackagePrices };
-        if (data.prices && SPIT_PACKAGES.every((pkg) => Number.isFinite(data.prices?.[pkg.id]))) {
-          if (!cancelled) setPrices(data.prices);
+        const data = (await response.json()) as { config?: SpitPackageConfig };
+        if (data.config && Number.isInteger(data.config.visibleCount) && data.config.visibleCount >= 2 && data.config.visibleCount <= 6 && Array.isArray(data.config.packages) && data.config.packages.length === 6) {
+          if (!cancelled) setConfig((current) => JSON.stringify(current) === JSON.stringify(data.config) ? current : data.config!);
         }
       } catch {
         // Keep the last known prices if the live service is temporarily unavailable.
@@ -1192,6 +1198,37 @@ const SpitbraaiFeature = () => {
       document.removeEventListener('visibilitychange', refreshPrices);
     };
   }, []);
+
+  useEffect(() => {
+    if (!selected) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSelectedId(null);
+        return;
+      }
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = [...dialogRef.current.querySelectorAll('button:not([disabled]), a[href]')] as HTMLElement[];
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+      previousFocus?.focus();
+    };
+  }, [selected]);
+
+  const packageCardWidth = config.visibleCount === 2 || config.visibleCount === 4
+    ? 'w-[calc(50%-0.375rem)]'
+    : 'w-[calc(50%-0.375rem)] sm:w-[calc(33.333%-0.5rem)]';
 
   return (
     <section id="spitbraai" aria-label="Spitbraai catering service in Stellenbosch – Coleridge Meat" className="py-24 md:py-32 bg-stone-950 border-y border-stone-900 relative overflow-hidden">
@@ -1249,16 +1286,20 @@ const SpitbraaiFeature = () => {
             </motion.p>
 
             {/* Pricing pills */}
-            <motion.div variants={fadeInUp} className="grid grid-cols-3 gap-3 mb-8">
-              {SPIT_PACKAGES.map((pkg) => (
-                <div
+            <motion.div variants={fadeInUp} className="mb-8 flex flex-wrap justify-center gap-3">
+              {config.packages.slice(0, config.visibleCount).map((pkg) => (
+                <button
+                  type="button"
                   key={pkg.id}
-                  className="bg-stone-900 border border-stone-800 rounded-sm p-4 text-center hover:border-burgundy-800/60 transition-colors"
+                  onClick={() => setSelectedId(pkg.id)}
+                  aria-label={`View ${pkg.name} details, ${formatSpitPrice(pkg.price)}`}
+                  className={`${packageCardWidth} flex min-h-32 flex-col items-center justify-center rounded-sm border border-stone-800 bg-stone-900 p-3 text-center transition-colors hover:border-burgundy-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-burgundy-500 sm:p-4`}
                 >
-                  <div className="text-[10px] font-semibold tracking-[0.15em] uppercase text-stone-500 mb-1">{pkg.label}</div>
-                  <div className="text-2xl font-serif text-stone-100">{formatSpitPrice(prices[pkg.id])}</div>
-                  <div className="text-[10px] text-stone-500 mt-1 leading-tight">{pkg.desc}</div>
-                </div>
+                  <span className="max-w-full text-[10px] font-semibold uppercase leading-4 tracking-[0.12em] text-stone-400 [overflow-wrap:anywhere]">{pkg.name}</span>
+                  <span className="mt-1 max-w-full font-serif text-xl text-stone-100 [overflow-wrap:anywhere] sm:text-2xl">{formatSpitPrice(pkg.price)}</span>
+                  <span className="mt-1 max-w-full text-[10px] leading-4 text-stone-500 [overflow-wrap:anywhere]">{pkg.shortDescription || 'Package details'}</span>
+                  <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-medium text-burgundy-400">View details <ArrowRight size={11} /></span>
+                </button>
               ))}
             </motion.div>
 
@@ -1300,6 +1341,53 @@ const SpitbraaiFeature = () => {
 
         </div>
       </div>
+      {selected && createPortal(
+        <AnimatePresence>
+          <motion.div
+            key="spit-package-overlay"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[90] bg-stone-950/85 backdrop-blur-sm"
+            onClick={() => setSelectedId(null)}
+          />
+          <motion.div
+            key="spit-package-dialog"
+            initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 18 }}
+            className="fixed inset-0 z-[91] flex items-start justify-center overflow-y-auto p-4 py-8 sm:items-center"
+            onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedId(null); }}
+          >
+            <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="spit-dialog-title" className="w-full max-w-lg overflow-hidden rounded-md border border-stone-700 bg-stone-900 text-left shadow-2xl">
+              <div className="relative h-36 overflow-hidden sm:h-44">
+                <img src="/images/site/spitbraai-lamb.webp" alt="" className="h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-stone-900 via-stone-900/25 to-transparent" />
+                <button ref={closeRef} type="button" onClick={() => setSelectedId(null)} aria-label="Close package details" className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-md border border-stone-600 bg-stone-950/80 text-stone-100 hover:bg-stone-800"><X size={17} /></button>
+              </div>
+              <div className="px-5 pb-6 sm:px-7">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-burgundy-400">Spit & Chill</div>
+                <div className="mt-2 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+                  <h2 id="spit-dialog-title" className="font-serif text-3xl leading-tight text-stone-100 [overflow-wrap:anywhere]">{selected.name}</h2>
+                  <span className="font-serif text-2xl text-stone-100">{formatSpitPrice(selected.price)}</span>
+                </div>
+                {selected.shortDescription && <p className="mt-1 text-sm text-stone-400">{selected.shortDescription}</p>}
+                <div className="mt-6 border-t border-stone-700 pt-5">
+                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-300">What's included</h3>
+                  {selected.included.length ? (
+                    <ul className="mt-3 grid gap-2 text-sm leading-6 text-stone-300">
+                      {selected.included.map((item, index) => <li key={`${index}-${item}`} className="flex items-start gap-3"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-burgundy-500" /><span className="[overflow-wrap:anywhere]">{item}</span></li>)}
+                    </ul>
+                  ) : <p className="mt-3 text-sm leading-6 text-stone-400">Ask our team for the full package breakdown.</p>}
+                </div>
+                {selected.note && <p className="mt-5 border-t border-stone-800 pt-4 text-sm leading-6 whitespace-pre-line text-stone-400 [overflow-wrap:anywhere]">{selected.note}</p>}
+                <a
+                  href={`https://wa.me/27611275756?text=${encodeURIComponent(`Hi Stefan, I'm interested in ${selected.name} (${formatSpitPrice(selected.price)}). Please tell me more.`)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-sm bg-burgundy-800 px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.12em] text-stone-100 hover:bg-burgundy-700"
+                ><MessageCircle size={16} /> Enquire about this package</a>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>,
+        document.body,
+      )}
     </section>
   );
 };
@@ -1970,6 +2058,7 @@ function App() {
       <Footer />
       <CartDrawer />
       <CheckoutModal />
+      <InstallSuggestion />
       
       {/* Floating WhatsApp Button */}
       <motion.a
