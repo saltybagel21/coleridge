@@ -1,9 +1,10 @@
 import { listProducts, renameCategory } from "../../_shared/catalogue";
 import { noStoreJson } from "../../_shared/http";
 import type { Env } from "../../_shared/types";
+import { CONTENT_LIMITS } from "../../../src/shared/contentLimits";
 
 const cleanCategory = (value: unknown) =>
-  typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, 80) : "";
+  typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
@@ -14,6 +15,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
     if (!currentName || !nextName) {
       return noStoreJson({ error: "Both category names are required." }, { status: 400 });
+    }
+    if (nextName.length > CONTENT_LIMITS.category) {
+      return noStoreJson({ error: `Category must be ${CONTENT_LIMITS.category} characters or fewer.` }, { status: 400 });
     }
     if (["all", "specials"].includes(nextName.toLowerCase())) {
       return noStoreJson({ error: "That name is reserved by the shop navigation." }, { status: 400 });

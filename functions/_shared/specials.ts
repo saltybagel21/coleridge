@@ -4,6 +4,7 @@ import type {
   SpecialTier,
 } from "../../src/shared/specials";
 import { getJohannesburgDate } from "../../src/shared/specials";
+import { CONTENT_LIMITS } from "../../src/shared/contentLimits";
 import type { Product } from "../../src/shop/products";
 import { getQuantityRules, isQuantityOnStep } from "../../src/shop/quantityRules";
 
@@ -180,7 +181,21 @@ export const validateSpecialCampaign = (
 ): ValidationResult => {
   if (!value || typeof value !== "object") return { ok: false, error: "Invalid campaign data." };
   const input = value as Record<string, unknown>;
-  const title = cleanText(input.title, 100);
+  const textFields = [
+    ["Campaign title", input.title, CONTENT_LIMITS.campaignTitle],
+    ["Subtitle", input.subtitle, CONTENT_LIMITS.subtitle],
+    ["Opening line", input.openingLine, CONTENT_LIMITS.openingLine],
+    ["Validity line", input.validityLine, CONTENT_LIMITS.validityLine],
+    ["Campaign note", input.note, CONTENT_LIMITS.campaignNote],
+    ["Ordering instruction", input.orderInstructions, CONTENT_LIMITS.orderInstructions],
+    ["WhatsApp message", input.customMessage, CONTENT_LIMITS.customMessage],
+  ] as const;
+  for (const [label, field, maxLength] of textFields) {
+    if (typeof field === "string" && field.trim().length > maxLength) {
+      return { ok: false, error: `${label} must be ${maxLength} characters or fewer.` };
+    }
+  }
+  const title = cleanText(input.title, CONTENT_LIMITS.campaignTitle);
   const startDate = cleanText(input.startDate, 10);
   const endDate = cleanText(input.endDate, 10);
 
@@ -202,7 +217,10 @@ export const validateSpecialCampaign = (
     if (!rawItem || typeof rawItem !== "object") return { ok: false, error: "Invalid campaign product." };
     const item = rawItem as Record<string, unknown>;
     const productId = cleanText(item.productId, 64);
-    const displayName = cleanText(item.displayName, 120);
+    if (typeof item.displayName === "string" && item.displayName.trim().length > CONTENT_LIMITS.specialName) {
+      return { ok: false, error: `Special product name must be ${CONTENT_LIMITS.specialName} characters or fewer.` };
+    }
+    const displayName = cleanText(item.displayName, CONTENT_LIMITS.specialName);
     const pricingMode = item.pricingMode === "tiered" ? "tiered" : "fixed";
     const product = options.productsById?.get(productId);
 
@@ -282,21 +300,21 @@ export const validateSpecialCampaign = (
     });
   }
 
-  const customMessage = cleanText(input.customMessage, 5000);
+  const customMessage = cleanText(input.customMessage, CONTENT_LIMITS.customMessage);
 
   return {
     ok: true,
     campaign: {
       id: options.id,
       title,
-      subtitle: cleanText(input.subtitle, 120),
-      openingLine: cleanText(input.openingLine, 300),
+      subtitle: cleanText(input.subtitle, CONTENT_LIMITS.subtitle),
+      openingLine: cleanText(input.openingLine, CONTENT_LIMITS.openingLine),
       startDate,
       endDate,
-      validityLine: cleanText(input.validityLine, 180),
+      validityLine: cleanText(input.validityLine, CONTENT_LIMITS.validityLine),
       includeYear: input.includeYear !== false,
-      note: cleanText(input.note, 400),
-      orderInstructions: cleanText(input.orderInstructions, 400),
+      note: cleanText(input.note, CONTENT_LIMITS.campaignNote),
+      orderInstructions: cleanText(input.orderInstructions, CONTENT_LIMITS.orderInstructions),
       published: input.published === true,
       items,
       customMessage: customMessage || null,

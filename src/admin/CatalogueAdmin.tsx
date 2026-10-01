@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { Product } from "../shop/products";
 import { formatZAR } from "../shop/CartContext";
+import { CONTENT_LIMITS } from "../shared/contentLimits";
 import { adminFetch, adminHref, signOutAdmin } from "./auth";
 import SpitPackagesEditor from "./SpitPackagesEditor";
 
@@ -691,7 +692,7 @@ const CatalogueAdmin: React.FC = () => {
                 <label className={labelClass}>New category name</label>
                 <input
                   required
-                  maxLength={80}
+                  maxLength={CONTENT_LIMITS.category}
                   value={categoryName}
                   onChange={(event) => setCategoryName(event.target.value)}
                   className={inputClass}
@@ -751,11 +752,11 @@ const CatalogueAdmin: React.FC = () => {
             <div className="space-y-5 px-5 py-6 sm:px-7">
               <div>
                 <label className={labelClass}>Product name</label>
-                <input required value={draft.name} onChange={(event) => updateDraft("name", event.target.value)} className={inputClass} />
+                <input required maxLength={CONTENT_LIMITS.productName} value={draft.name} onChange={(event) => updateDraft("name", event.target.value)} className={inputClass} />
               </div>
               <div>
                 <label className={labelClass}>Category</label>
-                <input required list="catalogue-categories" value={draft.category} onChange={(event) => updateDraft("category", event.target.value)} className={inputClass} />
+                <input required list="catalogue-categories" maxLength={CONTENT_LIMITS.category} value={draft.category} onChange={(event) => updateDraft("category", event.target.value)} className={inputClass} />
                 <datalist id="catalogue-categories">{categories.map((category) => <option key={category} value={category} />)}</datalist>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -772,11 +773,11 @@ const CatalogueAdmin: React.FC = () => {
               </div>
               <div>
                 <label className={labelClass}>Price label (optional)</label>
-                <input value={draft.priceLabel ?? ""} onChange={(event) => updateDraft("priceLabel", event.target.value || undefined)} placeholder="For example: Ask for price" className={inputClass} />
+                <input maxLength={CONTENT_LIMITS.priceLabel} value={draft.priceLabel ?? ""} onChange={(event) => updateDraft("priceLabel", event.target.value || undefined)} placeholder="For example: Ask for price" className={inputClass} />
               </div>
               <div>
                 <label className={labelClass}>Product note</label>
-                <textarea rows={4} value={draft.note ?? ""} onChange={(event) => updateDraft("note", event.target.value)} className={`${inputClass} resize-none`} />
+                <textarea rows={4} maxLength={CONTENT_LIMITS.productNote} value={draft.note ?? ""} onChange={(event) => updateDraft("note", event.target.value)} className={`${inputClass} resize-none`} />
               </div>
               <div className="grid gap-4 sm:grid-cols-3">
                 <div><label className={labelClass}>Minimum</label><input type="number" min="0" step="0.01" value={draft.minQty ?? ""} onChange={(event) => updateDraft("minQty", event.target.value === "" ? undefined : Number(event.target.value))} className={inputClass} /></div>

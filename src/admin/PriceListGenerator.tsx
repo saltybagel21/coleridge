@@ -14,6 +14,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { PUBLIC_SITE_URL } from "../config/site";
+import { CONTENT_LIMITS } from "../shared/contentLimits";
 import { formatTierRange, getLowestSpecialPrice } from "../shared/specials";
 import { formatZAR } from "../shop/CartContext";
 import type { Product } from "../shop/products";
@@ -258,7 +259,9 @@ const PriceListGenerator: React.FC = () => {
       doc.setTextColor(26, 22, 20);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(19);
-      doc.text(title.trim() || "Coleridge Meat Price List", headerX, 20);
+      const documentTitle = title.trim() || "Coleridge Meat Price List";
+      doc.setFontSize(Math.min(19, (19 * (196 - headerX)) / doc.getTextWidth(documentTitle)));
+      doc.text(documentTitle, headerX, 20);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(95, 88, 82);
@@ -282,7 +285,9 @@ const PriceListGenerator: React.FC = () => {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
         doc.setTextColor(115, 37, 55);
-        doc.text(category.toUpperCase(), 14, startY);
+        const categoryTitle = category.toUpperCase();
+        doc.setFontSize(Math.min(11, (11 * 182) / doc.getTextWidth(categoryTitle)));
+        doc.text(categoryTitle, 14, startY);
 
         autoTable(doc, {
           startY: startY + 3,
@@ -351,7 +356,7 @@ const PriceListGenerator: React.FC = () => {
           <div className="mt-8 grid gap-8 xl:grid-cols-[0.75fr_1.25fr]">
             <section>
               <h2 className="font-serif text-2xl text-stone-100">Price-list settings</h2>
-              <label className="mt-5 block"><span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-400">Document title</span><input value={title} onChange={(event) => setTitle(event.target.value)} className={inputClass} /></label>
+              <label className="mt-5 block"><span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-400">Document title</span><input value={title} maxLength={CONTENT_LIMITS.priceListTitle} onChange={(event) => setTitle(event.target.value)} className={inputClass} /></label>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 <label><span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-400">Valid from</span><input type="date" value={validFrom} onChange={(event) => setValidFrom(event.target.value)} className={inputClass} /></label>
                 <label><span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-400">Valid until</span><input type="date" min={validFrom} value={validUntil} onChange={(event) => setValidUntil(event.target.value)} className={inputClass} /></label>
@@ -362,7 +367,7 @@ const PriceListGenerator: React.FC = () => {
                 <label className="flex items-center gap-3 text-sm text-stone-300"><input type="checkbox" checked={includeNotes} onChange={(event) => setIncludeNotes(event.target.checked)} className="h-4 w-4 accent-burgundy-600" /> Include product descriptions</label>
                 <label className="flex items-center gap-3 text-sm text-stone-300"><input type="checkbox" checked={includeSpecials} onChange={(event) => setIncludeSpecials(event.target.checked)} className="h-4 w-4 accent-burgundy-600" /> Include active website specials</label>
               </div>
-              <div className="mt-5"><div className="flex items-center justify-between gap-3"><div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-400">Categories</div><button type="button" onClick={() => setSelectedCategories(selectedCategories.size === categories.length ? new Set() : new Set(categories))} className="text-xs text-burgundy-300 hover:text-white">{selectedCategories.size === categories.length ? "Clear all" : "Select all"}</button></div><div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">{categories.map((category) => <label key={category} className="flex items-center gap-3 rounded-md border border-stone-800 px-3 py-2.5 text-xs text-stone-300"><input type="checkbox" checked={selectedCategories.has(category)} onChange={() => toggleCategory(category)} className="h-4 w-4 accent-burgundy-600" /><span className="min-w-0 truncate">{category}</span></label>)}</div></div>
+              <div className="mt-5"><div className="flex items-center justify-between gap-3"><div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-400">Categories</div><button type="button" onClick={() => setSelectedCategories(selectedCategories.size === categories.length ? new Set() : new Set(categories))} className="text-xs text-burgundy-300 hover:text-white">{selectedCategories.size === categories.length ? "Clear all" : "Select all"}</button></div><div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">{categories.map((category) => <label key={category} className="flex min-w-0 items-center gap-3 rounded-md border border-stone-800 px-3 py-2.5 text-xs text-stone-300"><input type="checkbox" checked={selectedCategories.has(category)} onChange={() => toggleCategory(category)} className="h-4 w-4 shrink-0 accent-burgundy-600" /><span className="min-w-0 [overflow-wrap:anywhere]">{category}</span></label>)}</div></div>
               <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2"><button type="button" disabled={generating || !includedProducts.length || Boolean(validityError)} onClick={() => void downloadPdf()} className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-burgundy-700 px-4 text-xs font-bold uppercase tracking-[0.13em] text-white hover:bg-burgundy-600 disabled:opacity-40">{generating ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} Download PDF</button><button type="button" disabled={!includedProducts.length || Boolean(validityError)} onClick={openWhatsApp} className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#25D366] px-4 text-xs font-bold uppercase tracking-[0.13em] text-stone-950 hover:bg-[#3ee477] disabled:opacity-40"><MessageCircle size={16} /> Open WhatsApp <ExternalLink size={12} /></button></div>
               <button type="button" disabled={!includedProducts.length || Boolean(validityError)} onClick={() => void copyMessage()} className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-stone-700 text-xs font-bold uppercase tracking-[0.13em] text-stone-200 hover:border-stone-500 disabled:opacity-40">{copied ? <Check size={15} /> : <Copy size={15} />}{copied ? "Copied" : "Copy text price list"}</button>
             </section>

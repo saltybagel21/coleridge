@@ -1,11 +1,11 @@
 import type { Product, StockStatus, Unit } from "../../src/shop/products";
+import { CONTENT_LIMITS } from "../../src/shared/contentLimits";
 
 type ValidationResult =
   | { ok: true; product: Product }
   | { ok: false; error: string };
 
-const text = (value: unknown, maxLength: number) =>
-  typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
 
 const optionalNumber = (value: unknown) => {
   if (value === "" || value == null) return undefined;
@@ -26,16 +26,20 @@ export const validateProduct = (
 ): ValidationResult => {
   if (!value || typeof value !== "object") return { ok: false, error: "Invalid product data." };
   const input = value as Record<string, unknown>;
-  const name = text(input.name, 120);
-  const category = text(input.category, 80);
-  const note = text(input.note, 360);
-  const priceLabel = text(input.priceLabel, 40);
+  const name = text(input.name);
+  const category = text(input.category);
+  const note = text(input.note);
+  const priceLabel = text(input.priceLabel);
   const price = optionalNumber(input.price);
   const unit = input.unit as Unit;
   const stockStatus = input.stockStatus as StockStatus;
 
   if (!name) return { ok: false, error: "Product name is required." };
   if (!category) return { ok: false, error: "Category is required." };
+  if (name.length > CONTENT_LIMITS.productName) return { ok: false, error: `Product name must be ${CONTENT_LIMITS.productName} characters or fewer.` };
+  if (category.length > CONTENT_LIMITS.category) return { ok: false, error: `Category must be ${CONTENT_LIMITS.category} characters or fewer.` };
+  if (note.length > CONTENT_LIMITS.productNote) return { ok: false, error: `Product note must be ${CONTENT_LIMITS.productNote} characters or fewer.` };
+  if (priceLabel.length > CONTENT_LIMITS.priceLabel) return { ok: false, error: `Price label must be ${CONTENT_LIMITS.priceLabel} characters or fewer.` };
   if (price == null || price > 1_000_000) return { ok: false, error: "Enter a valid price." };
   if (unit !== "kg" && unit !== "each") return { ok: false, error: "Choose a valid unit." };
   if (stockStatus !== "in_stock" && stockStatus !== "out_of_stock") {

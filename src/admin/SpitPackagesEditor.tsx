@@ -7,6 +7,7 @@ import {
   type SpitPackageConfig,
   type SpitPackageId,
 } from "../shared/spitPackages";
+import { CONTENT_LIMITS } from "../shared/contentLimits";
 import { adminFetch } from "./auth";
 
 type DraftPackage = Omit<SpitPackage, "price" | "included"> & {
@@ -103,6 +104,15 @@ const SpitPackagesEditor: React.FC<{ onNotice: (message: string) => void }> = ({
       setError(`Give package ${invalidIndex + 1} a name and a price above R0 before publishing.`);
       return;
     }
+    const invalidIncludedIndex = config.packages.findIndex((pkg) =>
+      pkg.included.length > CONTENT_LIMITS.includedItems ||
+      pkg.included.some((item) => item.length > CONTENT_LIMITS.includedItem),
+    );
+    if (invalidIncludedIndex >= 0) {
+      setExpanded(invalidIncludedIndex);
+      setError(`Package ${invalidIncludedIndex + 1} can have up to ${CONTENT_LIMITS.includedItems} included items, each up to ${CONTENT_LIMITS.includedItem} characters.`);
+      return;
+    }
 
     setSaving(true);
     setError("");
@@ -192,7 +202,7 @@ const SpitPackagesEditor: React.FC<{ onNotice: (message: string) => void }> = ({
                 <div id={`spit-package-fields-${index}`} className="grid gap-4 border-t border-stone-800 px-4 py-5 sm:grid-cols-2 sm:px-5">
                   <div>
                     <label htmlFor={`spit-name-${index}`} className={labelClass}>Package name</label>
-                    <input id={`spit-name-${index}`} maxLength={60} value={pkg.name} onChange={(event) => updatePackage(index, { name: event.target.value })} className={inputClass} />
+                    <input id={`spit-name-${index}`} maxLength={CONTENT_LIMITS.packageName} value={pkg.name} onChange={(event) => updatePackage(index, { name: event.target.value })} className={inputClass} />
                   </div>
                   <div>
                     <label htmlFor={`spit-price-${index}`} className={labelClass}>Price (R)</label>
@@ -200,16 +210,16 @@ const SpitPackagesEditor: React.FC<{ onNotice: (message: string) => void }> = ({
                   </div>
                   <div className="sm:col-span-2">
                     <label htmlFor={`spit-short-${index}`} className={labelClass}>Short line under price</label>
-                    <input id={`spit-short-${index}`} maxLength={90} value={pkg.shortDescription} onChange={(event) => updatePackage(index, { shortDescription: event.target.value })} placeholder="For example: per person" className={inputClass} />
+                    <input id={`spit-short-${index}`} maxLength={CONTENT_LIMITS.packageShortLine} value={pkg.shortDescription} onChange={(event) => updatePackage(index, { shortDescription: event.target.value })} placeholder="For example: per person" className={inputClass} />
                   </div>
                   <div className="sm:col-span-2">
                     <label htmlFor={`spit-included-${index}`} className={labelClass}>What is included</label>
-                    <textarea id={`spit-included-${index}`} rows={5} maxLength={2100} value={pkg.includedText} onChange={(event) => updatePackage(index, { includedText: event.target.value })} placeholder={"One item per line\nLamb on the spit\nSalads"} className={`${inputClass} resize-y`} />
-                    <p className="mt-1 text-xs text-stone-500">One item per line. These appear as a clean list in the package details.</p>
+                    <textarea id={`spit-included-${index}`} rows={5} maxLength={CONTENT_LIMITS.includedItems * (CONTENT_LIMITS.includedItem + 1)} value={pkg.includedText} onChange={(event) => updatePackage(index, { includedText: event.target.value })} placeholder={"One item per line\nLamb on the spit\nSalads"} className={`${inputClass} resize-y`} />
+                    <p className="mt-1 text-xs text-stone-500">One item per line, up to {CONTENT_LIMITS.includedItems} items and {CONTENT_LIMITS.includedItem} characters each.</p>
                   </div>
                   <div className="sm:col-span-2">
                     <label htmlFor={`spit-note-${index}`} className={labelClass}>Additional note (optional)</label>
-                    <textarea id={`spit-note-${index}`} rows={3} maxLength={500} value={pkg.note} onChange={(event) => updatePackage(index, { note: event.target.value })} placeholder="For example: serving or booking details" className={`${inputClass} resize-y`} />
+                    <textarea id={`spit-note-${index}`} rows={3} maxLength={CONTENT_LIMITS.packageNote} value={pkg.note} onChange={(event) => updatePackage(index, { note: event.target.value })} placeholder="For example: serving or booking details" className={`${inputClass} resize-y`} />
                   </div>
                 </div>
               )}

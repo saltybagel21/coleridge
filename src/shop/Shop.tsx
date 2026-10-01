@@ -1192,9 +1192,9 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(36,83,136,0.18),transparent_32%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
         <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
 
-        <div className="relative grid h-full grid-rows-[84px_76px_96px_minmax(0,1fr)_104px]">
+        <div className="relative grid h-full grid-rows-[100px_84px_96px_minmax(0,1fr)_104px]">
           <div className="min-w-0">
-            <div className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.24em] text-burgundy-400">
+            <div className="min-h-4 text-[10px] font-semibold uppercase leading-4 tracking-[0.16em] text-burgundy-400 [overflow-wrap:anywhere]">
               {product.category}
             </div>
             <div className="mt-2 flex items-center justify-between gap-3">
@@ -1216,7 +1216,7 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
             </div>
           </div>
 
-          <h4 className="h-full overflow-hidden pb-1 pt-3 text-2xl font-serif leading-[1.2] text-stone-100 transition-colors duration-300 group-hover:text-white [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+          <h4 className={`h-full overflow-hidden pb-1 pt-3 font-serif text-stone-100 transition-colors duration-300 group-hover:text-white [display:-webkit-box] [-webkit-box-orient:vertical] [overflow-wrap:anywhere] ${product.name.length > 45 ? "text-[15px] leading-[1.1] [-webkit-line-clamp:4]" : product.name.length > 32 ? "text-lg leading-[1.15] [-webkit-line-clamp:3]" : "text-2xl leading-[1.2] [-webkit-line-clamp:2]"}`}>
             {formatProductName(product.name)}
           </h4>
 
@@ -1260,7 +1260,7 @@ const ProductCard: React.FC<{ product: Product; index: number; anchorId?: string
                     {product.price > 0 && <div className="mt-1 text-xs text-stone-500 line-through">{formatZAR(product.price)}</div>}
                   </>
                 ) : (
-                  <div className="text-2xl font-serif leading-[1.15] text-stone-100">
+                  <div className={`font-serif leading-[1.15] text-stone-100 [overflow-wrap:anywhere] ${product.priceLabel && product.priceLabel.length > 16 ? "text-sm" : "text-2xl"}`}>
                     {product.priceLabel ?? formatZAR(product.price)}
                   </div>
                 )}
