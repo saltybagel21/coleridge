@@ -1,7 +1,7 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.coleridgemeat.co.za/sitemap.xml
+Sitemap: https://coleridgemeatstellenbosch.co.za/sitemap.xml
 
 User-agent: GPTBot
 Allow: /

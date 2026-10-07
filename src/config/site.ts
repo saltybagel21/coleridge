@@ -1,8 +1,6 @@
-// Change this one fallback when the permanent domain is connected, or set
-// VITE_PUBLIC_SITE_URL in Cloudflare Pages for builds on another domain.
+// VITE_PUBLIC_SITE_URL can override the public domain for another deployment.
 export const PUBLIC_SITE_URL = (
-  import.meta.env.VITE_PUBLIC_SITE_URL || "https://coleridge.pages.dev"
+  import.meta.env.VITE_PUBLIC_SITE_URL || "https://coleridgemeatstellenbosch.co.za"
 ).replace(/\/$/, "");
 
 export const SPECIALS_SHOP_URL = `${PUBLIC_SITE_URL}/?view=specials#shop-grid`;
-
