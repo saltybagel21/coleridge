@@ -1394,47 +1394,41 @@ const SpitbraaiFeature = () => {
 };
 
 const GoogleReviews = () => {
+  const googleRating = 4.9;
+  const googleReviewCount = 8;
   const reviews = [
     {
-      name: "Angelique Rispel",
-      type: "Local Guide",
-      reviews: "71 reviews",
-      photos: "60 photos",
-      time: "3 weeks ago",
+      name: "Max",
+      type: "Google reviewer",
+      date: null,
       rating: 5,
       text: "Always great service, love their steaks. And meat is very affordable"
     },
     {
-      name: "Michael Petersen",
-      type: "Regular Customer",
-      reviews: "23 reviews",
-      photos: "15 photos",
-      time: "2 weeks ago",
+      name: "Angelique Rispel",
+      type: "Local Guide",
+      date: null,
       rating: 5,
-      text: "Best boerewors in Stellenbosch! Always fresh and the staff knows their stuff. Weekend braais just got better."
+      text: "Always great service,love their steaks.and meat is very affordable"
     },
     {
-      name: "Sarah Johnson",
-      type: "Local Resident",
-      reviews: "45 reviews",
-      photos: "32 photos",
-      time: "1 month ago",
+      name: "Damien",
+      type: "Local Guide",
+      date: "2026-10-06",
       rating: 5,
-      text: "Quality is consistently excellent. Their dry-aged steaks are a game changer for dinner parties. Highly recommend!"
+      text: "Great quality meat and a good selection across the board.\nThe prices are affordable as well. I will be going back!"
     },
     {
-      name: "David Botha",
-      type: "Regular Customer",
-      reviews: "18 reviews",
-      photos: "8 photos",
-      time: "1 month ago",
+      name: "Yvette du Plessis",
+      type: "Google reviewer",
+      date: "2026-10-06",
       rating: 5,
-      text: "Friendly service and amazing quality meats. The lamb chops are my favorite - always tender and flavorful."
+      text: "I have recently started buying from Coleridge meat, the meat is always great quality, friendly quick service, and really good value for money. Will be continuing to buy from them going forward"
     }
   ];
 
   return (
-    <section className="relative overflow-hidden py-24 md:py-32 bg-stone-950">
+    <section id="reviews" aria-label="Customer Google reviews" className="relative overflow-hidden py-24 md:py-32 bg-stone-950">
       <div className="absolute right-[-8rem] top-20 h-72 w-72 rounded-full bg-[#10233f]/22 blur-3xl pointer-events-none" />
       <div className="max-w-7xl mx-auto px-6 relative">
         <div className="text-center mb-16">
@@ -1442,21 +1436,28 @@ const GoogleReviews = () => {
             What Our Customers Say
           </SectionTag>
           <h2 className="text-4xl md:text-5xl font-serif text-stone-100 mb-4">Google Reviews</h2>
-          <div className="flex items-center justify-center gap-2 mb-6">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2" aria-label={`Rated ${googleRating} out of 5 on Google`}>
+            <div className="flex gap-1" aria-hidden="true">
             {[...Array(5)].map((_, i) => (
-              <span key={i} className="text-yellow-500 text-2xl">★</span>
+              <span key={i} className="relative h-6 w-6">
+                <Star className="h-6 w-6 text-yellow-500" />
+                <span className="absolute inset-y-0 left-0 overflow-hidden" style={{ width: `${Math.max(0, Math.min(1, googleRating - i)) * 100}%` }}>
+                  <Star className="h-6 w-6 max-w-none fill-yellow-500 text-yellow-500" />
+                </span>
+              </span>
             ))}
-            <span className="ml-2 inline-flex items-center gap-2 text-stone-400">
-              <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-              4.8 out of 5
+            </div>
+            <span className="text-stone-400">
+              {googleRating.toFixed(1)} out of 5
             </span>
           </div>
+          <p className="mt-3 text-sm text-stone-500">Based on {googleReviewCount} Google reviews</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {reviews.map((review, idx) => (
             <motion.div 
-              key={idx}
+              key={review.name}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -1474,29 +1475,29 @@ const GoogleReviews = () => {
                     <div className="w-10 h-10 bg-burgundy-800 rounded-full flex items-center justify-center text-stone-100 font-semibold shrink-0">
                       {review.name.charAt(0)}
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <h4 className="text-stone-100 font-medium">{review.name}</h4>
-                      <p className="text-stone-500 text-xs">{review.type} · {review.reviews} · {review.photos}</p>
+                      <p className="text-stone-500 text-xs">{review.type}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <div className="flex gap-0.5" aria-label={`${review.rating} out of 5 stars`}>
                       {[...Array(review.rating)].map((_, i) => (
-                        <span key={i} className="text-yellow-500 text-sm">★</span>
+                        <Star key={i} aria-hidden="true" className="h-4 w-4 fill-yellow-500 text-yellow-500" />
                       ))}
                     </div>
-                    <span className="text-stone-500 text-xs">{review.time}</span>
+                    {review.date && <time dateTime={review.date} className="text-stone-500 text-xs">{new Date(`${review.date}T12:00:00+02:00`).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Johannesburg" })}</time>}
                   </div>
                 </div>
               </div>
-              <p className="text-stone-300 leading-relaxed group-hover:text-stone-200 transition-colors duration-300">{review.text}</p>
+              <p className="whitespace-pre-line text-stone-300 leading-relaxed group-hover:text-stone-200 transition-colors duration-300 [overflow-wrap:anywhere]">{review.text}</p>
             </motion.div>
           ))}
         </div>
 
         <div className="text-center mt-12">
           <a 
-            href={`https://www.google.com/search?q=Coleridge+Meat+Stellenbosch+reviews`}
+            href="https://www.google.com/search?q=Coleridge+Meat+Stellenbosch+reviews#lrd=0x1dcdb27d7dfd44cf:0xe768c8c1b1bf7685,1,,,,"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-8 py-4 border border-stone-700 text-stone-300 rounded-sm text-sm font-semibold tracking-widest uppercase hover:bg-stone-800 transition-colors"
