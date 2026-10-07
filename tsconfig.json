@@ -27,5 +27,5 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "exclude": ["legacy"]
+  "exclude": ["legacy", "dist", "build", ".wrangler", "node_modules"]
 }

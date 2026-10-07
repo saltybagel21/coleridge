@@ -12,6 +12,7 @@ Cloudflare needs these parts of the repository:
 - `functions`
 - `migrations`
 - `public`
+- `scripts` (required for the build-time public page prerender)
 - `index.html`
 - `package.json` and `package-lock.json`
 - `tsconfig.json` and `vite.config.ts`
@@ -30,6 +31,10 @@ Cloudflare needs these parts of the repository:
 
 5. Add build variable `NODE_VERSION` with value `22`.
 6. Deploy once. The public site can render from its built-in catalogue before D1 is connected, but the dashboard will remain unavailable.
+
+The build also renders the existing business sections into `dist/index.html` so search engines and visitors can read them before JavaScript runs. Product prices, specials and spit package prices are deliberately not snapshotted: the interactive site still reads those from D1. Owner entry points have separate, unindexed app shells. Run `npm run test:seo` after building to check this behavior.
+
+The Pages middleware permanently redirects `www.coleridgemeatstellenbosch.co.za` and the old `coleridge.pages.dev` address to `https://coleridgemeatstellenbosch.co.za/`, preserving paths and query strings. Both custom domains must remain attached to Pages so HTTPS requests to `www` can reach the redirect. Preview URLs and local development are not redirected.
 
 ## 3. Create and connect D1
 

@@ -283,42 +283,9 @@ const SectionTag = ({
 };
 
 const DEFAULT_SEO = {
-  title: "Coleridge Meat | Premium Butcher in Stellenbosch",
+  title: "Coleridge Meat | Halaal Butchery in Stellenbosch",
   description:
     "Premium Halaal butcher in Stellenbosch for quality beef, lamb, chicken, braai cuts, online ordering and spitbraai services.",
-};
-
-const SECTION_SEO: Record<string, { title: string; description: string }> = {
-  about: {
-    title: "About Coleridge Meat | Trusted Local Butcher in Stellenbosch",
-    description:
-      "Learn more about Coleridge Meat, a trusted Stellenbosch butcher focused on premium quality cuts, Halaal standards and personal local service.",
-  },
-  selection: {
-    title: "Our Meat Selection | Beef, Lamb, Chicken and Braai Cuts",
-    description:
-      "Explore Coleridge Meat's selection of premium beef, lamb, chicken, boerewors, ostrich and braai-ready favourites in Stellenbosch.",
-  },
-  spitbraai: {
-    title: "Spitbraai Catering Stellenbosch | Coleridge Meat",
-    description:
-      "Book Coleridge Meat for spitbraai catering in Stellenbosch. Packages are confirmed directly with our team for family functions, events and gatherings.",
-  },
-  shop: {
-    title: "Order Meat Online | Coleridge Meat Butcher Counter",
-    description:
-      "Shop the complete Coleridge Meat catalogue online, then let our team confirm availability, pack sizes and final totals.",
-  },
-  faq: {
-    title: "FAQ | Ordering, Halaal, Delivery and Spitbraai",
-    description:
-      "Find answers about Coleridge Meat ordering, online checkout, delivery, Halaal certification, spitbraai services and store hours.",
-  },
-  contact: {
-    title: "Contact Coleridge Meat | Visit Our Stellenbosch Butcher Shop",
-    description:
-      "Visit or contact Coleridge Meat in Cloetesville, Stellenbosch. Find our address, opening hours, phone number, email and WhatsApp contact details.",
-  },
 };
 
 const setMetaContent = (selector: string, content: string) => {
@@ -395,9 +362,9 @@ const StickyNav = () => {
           }}
           className="flex items-center gap-3"
         >
-          <span className="font-serif text-xl md:text-[1.4rem] font-bold tracking-tight text-stone-100">
+          <h1 className="font-serif text-xl md:text-[1.4rem] font-bold tracking-tight text-stone-100">
             {CONFIG.BUSINESS_NAME.toUpperCase()}
-          </span>
+          </h1>
         </a>
 
         {/* Desktop Links */}
@@ -624,14 +591,14 @@ const Hero = () => {
             </span>
           </motion.div>
           
-          <motion.h1 
+          <motion.h2
             variants={fadeInUp}
             className="mb-4 text-[clamp(2.1rem,12vw,4.85rem)] font-serif font-medium leading-[0.94] text-stone-100 sm:mb-8 sm:text-6xl sm:leading-[1.02] md:text-7xl lg:text-8xl"
             whileHover={{ scale: 1.02 }}
             transition={{ duration: 0.3 }}
           >
             The finest cuts for<br className="hidden md:block" /> the local table
-          </motion.h1>
+          </motion.h2>
           
           <motion.p 
             variants={fadeInUp}
@@ -1164,12 +1131,12 @@ const FeaturedCuts = () => {
   );
 };
 
-const SpitbraaiFeature = () => {
+const SpitbraaiFeature = ({ staticContent = false }: { staticContent?: boolean }) => {
   const [config, setConfig] = useState<SpitPackageConfig>(defaultSpitPackageConfig);
   const [selectedId, setSelectedId] = useState<SpitPackageId | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const visiblePackages = config.visibleIds.map((id) => config.packages.find((pkg) => pkg.id === id)).filter((pkg) => pkg !== undefined);
+  const visiblePackages = staticContent ? [] : config.visibleIds.map((id) => config.packages.find((pkg) => pkg.id === id)).filter((pkg) => pkg !== undefined);
   const selected = visiblePackages.find((pkg) => pkg.id === selectedId);
 
   useEffect(() => {
@@ -1962,8 +1929,8 @@ function App() {
     }
 
     const applySeo = () => {
-      const currentHash = window.location.hash.replace("#", "");
-      const seo = SECTION_SEO[currentHash] ?? DEFAULT_SEO;
+      // Section anchors belong to this same canonical page, not separate SEO pages.
+      const seo = DEFAULT_SEO;
 
       document.title = seo.title;
       setMetaContent('meta[name="description"]', seo.description);
@@ -2039,6 +2006,10 @@ function App() {
     );
   }
 
+  return <PublicPage />;
+}
+
+export function PublicPage({ staticContent = false }: { staticContent?: boolean }) {
   return (
     <CartProvider>
     <div id="top" className="min-h-screen bg-stone-950 text-stone-200 font-sans selection:bg-burgundy-800 selection:text-stone-100">
@@ -2049,18 +2020,32 @@ function App() {
         <WhyChooseUs />
         <OurSelection />
         <FeaturedCuts />
-        <SpitbraaiFeature />
+        <SpitbraaiFeature staticContent={staticContent} />
         <PublicShopIntro />
-        <ShopGrid />
+        {staticContent ? (
+          <section id="shop-grid" className="bg-stone-950 py-12">
+            <div id="shop-products-start" className="mx-auto max-w-7xl px-6">
+              <h2 className="font-serif text-3xl text-stone-100">The butcher's counter</h2>
+              <p className="mt-4 max-w-2xl leading-7 text-stone-400">
+                Fresh beef, lamb, chicken, ostrich, mince, boerewors and braai favourites
+                from Coleridge Meat in Stellenbosch. Contact our team for current prices
+                and availability, or enable JavaScript to shop the live catalogue.
+              </p>
+              <a href={CONFIG.WHATSAPP} className="mt-5 inline-flex items-center gap-2 text-stone-100">
+                <MessageCircle size={16} /> Order on WhatsApp
+              </a>
+            </div>
+          </section>
+        ) : <ShopGrid />}
         <GoogleReviews />
         <CommunityTrust />
         <FAQSection />
         <Contact />
       </main>
       <Footer />
-      <CartDrawer />
-      <CheckoutModal />
-      <InstallSuggestion />
+      {!staticContent && <CartDrawer />}
+      {!staticContent && <CheckoutModal />}
+      {!staticContent && <InstallSuggestion />}
       
       {/* Floating WhatsApp Button */}
       <motion.a

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "dev:cloudflare": "npm run build && wrangler pages dev dist --d1 DB=coleridge-catalogue-local --compatibility-date=2026-08-03 --port 8788",
-    "build": "vite build",
+    "build": "vite build && node scripts/prerender.mjs",
+    "test:seo": "node --experimental-strip-types --test tests/seo.test.mjs",
     "preview": "vite preview",
     "clean": "node -e \"require('fs').rmSync('dist',{ recursive: true, force: true })\"",
     "lint": "tsc --noEmit"
